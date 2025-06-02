@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoMarketing AI - Agents IA pour le Géomarketing</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-map-marked-alt me-2"></i>
+                GeoMarketing AI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"><i class="fas fa-home me-1"></i> Accueil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/commercial"><i class="fas fa-store me-1"></i> Emplacement Commercial</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/soil"><i class="fas fa-seedling me-1"></i> Qualité des Sols</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/docs"><i class="fas fa-book me-1"></i> Documentation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://github.com/username/geomarketing-ai-agents" target="_blank">
+                            <i class="fab fa-github me-1"></i> GitHub
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <header class="py-5 bg-light text-center">
+        <div class="container">
+            <h1 class="display-4">Agents IA pour le Géomarketing</h1>
+            <p class="lead">Optimisez vos décisions géographiques grâce à l'intelligence artificielle</p>
+            <div class="mt-4">
+                <a href="/commercial" class="btn btn-primary btn-lg me-2">
+                    <i class="fas fa-store me-1"></i> Analyse d'Emplacement
+                </a>
+                <a href="/soil" class="btn btn-success btn-lg">
+                    <i class="fas fa-seedling me-1"></i> Analyse des Sols
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <section class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-store fa-3x text-primary"></i>
+                            </div>
+                            <h3 class="card-title text-center">Optimisation d'Emplacement Commercial</h3>
+                            <p class="card-text">
+                                Trouvez le meilleur emplacement pour votre commerce en analysant les données démographiques, 
+                                les flux de circulation, la concurrence et d'autres facteurs clés. Notre agent IA vous 
+                                fournit des recommandations précises et des visualisations interactives.
+                            </p>
+                            <ul class="list-group list-group-flush mb-3">
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Analyse démographique</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Étude de la concurrence</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Accessibilité et visibilité</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Recommandations IA</li>
+                            </ul>
+                            <div class="text-center">
+                                <a href="/commercial" class="btn btn-primary">
+                                    <i class="fas fa-arrow-right me-1"></i> Commencer l'analyse
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-seedling fa-3x text-success"></i>
+                            </div>
+                            <h3 class="card-title text-center">Analyse de la Qualité des Sols</h3>
+                            <p class="card-text">
+                                Évaluez la compatibilité de vos terrains avec différentes cultures, comme la stevia. 
+                                Notre agent IA analyse les données pédologiques, climatiques et hydrologiques pour 
+                                vous fournir des recommandations agronomiques adaptées.
+                            </p>
+                            <ul class="list-group list-group-flush mb-3">
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Analyse pédologique</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Compatibilité des cultures</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Zonage des parcelles</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Recommandations agronomiques</li>
+                            </ul>
+                            <div class="text-center">
+                                <a href="/soil" class="btn btn-success">
+                                    <i class="fas fa-arrow-right me-1"></i> Commencer l'analyse
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-4">Technologies Utilisées</h2>
+            <div class="row text-center">
+                <div class="col-md-4 mb-4">
+                    <div class="p-3">
+                        <i class="fas fa-brain fa-3x mb-3 text-primary"></i>
+                        <h4>DeepSeek R1</h4>
+                        <p>Modèle d'IA avancé pour le raisonnement et l'analyse de données géospatiales complexes.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="p-3">
+                        <i class="fas fa-map fa-3x mb-3 text-primary"></i>
+                        <h4>QGIS & Bibliothèques Géospatiales</h4>
+                        <p>Outils open source pour l'analyse et la visualisation de données géographiques.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="p-3">
+                        <i class="fas fa-database fa-3x mb-3 text-primary"></i>
+                        <h4>Sources de Données Ouvertes</h4>
+                        <p>Intégration de données OpenStreetMap, INSEE, INRAE et autres sources ouvertes.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-4 bg-dark text-white">
+        <div class="container text-center">
+            <p>GeoMarketing AI Agents &copy; 2025 | Projet Open Source</p>
+            <div>
+                <a href="https://github.com/username/geomarketing-ai-agents" class="text-white me-3" target="_blank">
+                    <i class="fab fa-github"></i>
+                </a>
+                <a href="/docs" class="text-white me-3">
+                    <i class="fas fa-book"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
