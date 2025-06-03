@@ -1,266 +1,466 @@
 """
-Module pour l'intégration avec DeepSeek-R1 ou un mock pour le développement local.
+Module pour l'intégration avec DeepSeek R1.
+Ce client permet d'utiliser l'IA DeepSeek R1 pour l'analyse géospatiale.
 """
 import os
 import json
 import requests
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 
-class DeepSeekClient:
+class DeepseekClient:
     """
-    Client pour interagir avec l'API DeepSeek-R1 ou utiliser un mock local.
+    Client pour l'API DeepSeek R1.
     """
-    def __init__(self, use_mock: bool = True, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, use_mock: bool = True):
         """
-        Initialise le client DeepSeek.
+        Initialise le client DeepSeek R1.
         
         Args:
-            use_mock: Si True, utilise un mock local au lieu de l'API réelle
-            api_key: Clé API pour DeepSeek-R1 (nécessaire si use_mock=False)
+            api_key (str, optional): Clé API pour DeepSeek R1. Si non fournie, 
+                                     utilise la variable d'environnement DEEPSEEK_API_KEY.
+            use_mock (bool): Si True, utilise des réponses simulées au lieu d'appeler l'API réelle.
         """
-        self.use_mock = use_mock
         self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY", "")
-        self.api_url = "https://api.deepseek.com/v1/chat/completions"  # URL fictive, à remplacer par l'URL réelle
+        self.api_url = "https://api.deepseek.com/v1"
+        self.use_mock = use_mock
         
-    def generate_response(self, prompt: str, context: Dict[str, Any] = None) -> str:
+    def analyze_commercial_location(self, 
+                                   location: str, 
+                                   business_type: str, 
+                                   parameters: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Génère une réponse basée sur un prompt et un contexte optionnel.
+        Analyse un emplacement commercial à l'aide de DeepSeek R1.
         
         Args:
-            prompt: Le prompt à envoyer à DeepSeek-R1
-            context: Contexte supplémentaire pour guider la génération
+            location (str): Nom de l'emplacement (ville, adresse, etc.)
+            business_type (str): Type de commerce (pharmacie, boulangerie, etc.)
+            parameters (dict): Paramètres d'analyse (rayon, facteurs d'importance, etc.)
             
         Returns:
-            La réponse générée
+            dict: Résultats de l'analyse
         """
         if self.use_mock:
-            return self._mock_response(prompt, context)
+            return self._mock_commercial_location_response(location, business_type, parameters)
         
-        # Vérification de la clé API
-        if not self.api_key:
-            raise ValueError("API key is required when not using mock")
+        # Construction de la requête pour l'API réelle
+        prompt = self._build_commercial_location_prompt(location, business_type, parameters)
         
-        # Préparation des données pour l'API
+        # Appel à l'API DeepSeek R1
+        response = self._call_api(prompt)
+        
+        # Traitement de la réponse
+        return self._parse_commercial_location_response(response)
+    
+    def analyze_soil_quality(self, 
+                            location: str, 
+                            crop_type: str, 
+                            parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyse la qualité des sols à l'aide de DeepSeek R1.
+        
+        Args:
+            location (str): Nom de l'emplacement (ville, région, etc.)
+            crop_type (str): Type de culture (stevia, blé, etc.)
+            parameters (dict): Paramètres d'analyse (profondeur, facteurs d'importance, etc.)
+            
+        Returns:
+            dict: Résultats de l'analyse
+        """
+        if self.use_mock:
+            return self._mock_soil_quality_response(location, crop_type, parameters)
+        
+        # Construction de la requête pour l'API réelle
+        prompt = self._build_soil_quality_prompt(location, crop_type, parameters)
+        
+        # Appel à l'API DeepSeek R1
+        response = self._call_api(prompt)
+        
+        # Traitement de la réponse
+        return self._parse_soil_quality_response(response)
+    
+    def _call_api(self, prompt: str) -> Dict[str, Any]:
+        """
+        Appelle l'API DeepSeek R1.
+        
+        Args:
+            prompt (str): Prompt à envoyer à l'API
+            
+        Returns:
+            dict: Réponse de l'API
+            
+        Raises:
+            Exception: En cas d'erreur lors de l'appel à l'API
+        """
         headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
         }
         
         data = {
-            "model": "deepseek-r1-distill-qwen-32b",
+            "model": "deepseek-r1",
             "messages": [
-                {"role": "system", "content": "Vous êtes un assistant spécialisé en géomarketing qui aide à analyser des données géospatiales."},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.7,
-            "max_tokens": 1000
+            "temperature": 0.2,
+            "max_tokens": 2000
         }
         
-        # Ajout du contexte si fourni
-        if context:
-            data["messages"].insert(1, {"role": "system", "content": json.dumps(context)})
+        response = requests.post(
+            f"{self.api_url}/chat/completions",
+            headers=headers,
+            json=data
+        )
         
+        if response.status_code != 200:
+            raise Exception(f"Erreur lors de l'appel à l'API DeepSeek R1: {response.text}")
+        
+        return response.json()
+    
+    def _build_commercial_location_prompt(self, 
+                                         location: str, 
+                                         business_type: str, 
+                                         parameters: Dict[str, Any]) -> str:
+        """
+        Construit le prompt pour l'analyse d'emplacement commercial.
+        
+        Args:
+            location (str): Nom de l'emplacement
+            business_type (str): Type de commerce
+            parameters (dict): Paramètres d'analyse
+            
+        Returns:
+            str: Prompt formaté
+        """
+        radius = parameters.get("radius", 500)
+        importance_factors = parameters.get("importance_factors", {})
+        
+        prompt = f"""
+        En tant qu'expert en géomarketing, analyse l'emplacement suivant pour y implanter un commerce:
+        
+        Localisation: {location}
+        Type de commerce: {business_type}
+        Rayon d'analyse: {radius} mètres
+        
+        Facteurs d'importance:
+        - Population: {importance_factors.get('population', 0.4)}
+        - Concurrence: {importance_factors.get('competition', 0.3)}
+        - Accessibilité: {importance_factors.get('accessibility', 0.2)}
+        - Visibilité: {importance_factors.get('visibility', 0.1)}
+        
+        Fournir une analyse détaillée avec:
+        1. Scores d'attractivité (global, points d'intérêt, accessibilité, concurrence)
+        2. Identification des emplacements optimaux avec leurs avantages et inconvénients
+        3. Recommandations stratégiques
+        
+        Présenter les résultats sous forme de JSON structuré avec les clés suivantes:
+        - scores: objet contenant les scores d'attractivité
+        - hotspots: liste des emplacements optimaux avec leurs caractéristiques
+        - recommendations: liste des recommandations stratégiques
+        """
+        
+        return prompt
+    
+    def _build_soil_quality_prompt(self, 
+                                  location: str, 
+                                  crop_type: str, 
+                                  parameters: Dict[str, Any]) -> str:
+        """
+        Construit le prompt pour l'analyse de la qualité des sols.
+        
+        Args:
+            location (str): Nom de l'emplacement
+            crop_type (str): Type de culture
+            parameters (dict): Paramètres d'analyse
+            
+        Returns:
+            str: Prompt formaté
+        """
+        depth = parameters.get("depth", 30)
+        importance_factors = parameters.get("importance_factors", {})
+        
+        prompt = f"""
+        En tant qu'expert en agronomie et pédologie, analyse la qualité des sols suivants pour la culture:
+        
+        Localisation: {location}
+        Type de culture: {crop_type}
+        Profondeur d'analyse: {depth} cm
+        
+        Facteurs d'importance:
+        - pH: {importance_factors.get('ph', 0.3)}
+        - Drainage: {importance_factors.get('drainage', 0.3)}
+        - Texture: {importance_factors.get('texture', 0.2)}
+        - Matière organique: {importance_factors.get('organic_matter', 0.2)}
+        
+        Fournir une analyse détaillée avec:
+        1. Scores de compatibilité (global, pH, drainage, texture, matière organique)
+        2. Identification des zones optimales, intermédiaires et peu adaptées
+        3. Recommandations agronomiques pour chaque zone
+        
+        Présenter les résultats sous forme de JSON structuré avec les clés suivantes:
+        - compatibility: objet contenant les scores de compatibilité
+        - zones: liste des zones identifiées avec leurs caractéristiques
+        - recommendations: liste des recommandations agronomiques
+        """
+        
+        return prompt
+    
+    def _parse_commercial_location_response(self, response: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Parse la réponse de l'API pour l'analyse d'emplacement commercial.
+        
+        Args:
+            response (dict): Réponse de l'API
+            
+        Returns:
+            dict: Résultats structurés
+        """
         try:
-            response = requests.post(self.api_url, headers=headers, json=data)
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
-        except requests.exceptions.RequestException as e:
-            print(f"Error calling DeepSeek API: {e}")
-            return "Une erreur s'est produite lors de la communication avec l'API DeepSeek."
+            content = response["choices"][0]["message"]["content"]
+            # Extraire le JSON de la réponse
+            json_start = content.find("{")
+            json_end = content.rfind("}") + 1
+            json_str = content[json_start:json_end]
+            
+            return json.loads(json_str)
+        except (KeyError, json.JSONDecodeError, ValueError) as e:
+            print(f"Erreur lors du parsing de la réponse: {e}")
+            return {
+                "error": "Impossible de parser la réponse de l'API",
+                "raw_response": response
+            }
     
-    def _mock_response(self, prompt: str, context: Dict[str, Any] = None) -> str:
+    def _parse_soil_quality_response(self, response: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Génère une réponse mock basée sur des règles prédéfinies.
+        Parse la réponse de l'API pour l'analyse de la qualité des sols.
         
         Args:
-            prompt: Le prompt envoyé
-            context: Contexte supplémentaire
+            response (dict): Réponse de l'API
             
         Returns:
-            Une réponse simulée
+            dict: Résultats structurés
         """
-        # Analyse du prompt pour déterminer le type de requête
-        if "emplacement" in prompt.lower() or "pharmacie" in prompt.lower() or "commercial" in prompt.lower():
-            return self._mock_commercial_location(prompt, context)
-        elif "sol" in prompt.lower() or "stevia" in prompt.lower() or "culture" in prompt.lower():
-            return self._mock_soil_quality(prompt, context)
-        else:
-            return "Je ne peux pas déterminer le type d'analyse demandée. Veuillez préciser si vous souhaitez une analyse d'emplacement commercial ou de qualité des sols."
+        try:
+            content = response["choices"][0]["message"]["content"]
+            # Extraire le JSON de la réponse
+            json_start = content.find("{")
+            json_end = content.rfind("}") + 1
+            json_str = content[json_start:json_end]
+            
+            return json.loads(json_str)
+        except (KeyError, json.JSONDecodeError, ValueError) as e:
+            print(f"Erreur lors du parsing de la réponse: {e}")
+            return {
+                "error": "Impossible de parser la réponse de l'API",
+                "raw_response": response
+            }
     
-    def _mock_commercial_location(self, prompt: str, context: Dict[str, Any] = None) -> str:
-        """Mock pour les réponses d'optimisation d'emplacement commercial"""
-        location = context.get("location", "la zone sélectionnée") if context else "la zone sélectionnée"
-        
-        return f"""Analyse d'emplacement commercial pour {location}:
-
-Après analyse des données démographiques, des flux de circulation et de la concurrence, voici mes recommandations:
-
-1. Emplacement optimal: Le secteur nord-est de la zone présente le meilleur potentiel avec un score d'attractivité de 8.7/10.
-   - Avantages: Forte densité de population (environ 5000 habitants dans un rayon de 500m), proximité d'un centre médical, bon accès aux transports en commun.
-   - Inconvénients: Présence d'un concurrent à 800m, stationnement limité.
-
-2. Emplacement alternatif: Le carrefour central avec un score d'attractivité de 7.9/10.
-   - Avantages: Excellente visibilité, fort passage piétonnier (environ 1200 personnes/heure), synergie avec commerces existants.
-   - Inconvénients: Loyer potentiellement plus élevé, concurrence plus forte.
-
-3. Emplacement de niche: La zone résidentielle sud avec un score de 7.2/10.
-   - Avantages: Faible concurrence, population vieillissante (bon marché pour une pharmacie), stationnement facile.
-   - Inconvénients: Moindre visibilité, accès limité en transports en commun.
-
-Je recommande de privilégier le premier emplacement qui offre le meilleur équilibre entre accessibilité, visibilité et potentiel commercial.
-"""
-    
-    def _mock_soil_quality(self, prompt: str, context: Dict[str, Any] = None) -> str:
-        """Mock pour les réponses d'analyse de qualité des sols"""
-        location = context.get("location", "la parcelle sélectionnée") if context else "la parcelle sélectionnée"
-        
-        return f"""Analyse de la qualité des sols pour {location} concernant la culture de stevia:
-
-Après analyse des données pédologiques, climatiques et hydrologiques, voici mes conclusions:
-
-1. Zone optimale: La partie sud-est de la parcelle (environ 40% de la surface totale) présente les meilleures conditions.
-   - Caractéristiques: Sol limoneux-sableux, pH 6.2-6.8 (légèrement acide, idéal pour la stevia), bonne capacité de drainage.
-   - Recommandations: Aucun amendement majeur nécessaire, système d'irrigation goutte-à-goutte recommandé.
-
-2. Zone intermédiaire: La partie centrale (environ 35% de la surface).
-   - Caractéristiques: Sol plus argileux, pH 5.8-6.2 (un peu trop acide), drainage moyen.
-   - Recommandations: Amendement calcaire léger (500kg/ha), amélioration du drainage par sous-solage.
-
-3. Zone peu adaptée: La partie nord-ouest (environ 25% de la surface).
-   - Caractéristiques: Sol lourd et compacté, pH 5.5 (trop acide), risque d'engorgement.
-   - Recommandations: Utiliser pour d'autres cultures ou réaliser des travaux importants (drainage, amendements organiques et calcaires).
-
-Pour maximiser le rendement de stevia, je recommande de concentrer la culture sur les zones 1 et 2, avec les amendements appropriés pour la zone 2. La zone 3 pourrait être réservée à d'autres cultures moins sensibles aux conditions acides et à l'engorgement.
-"""
-
-    def analyze_commercial_location(self, location: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    def _mock_commercial_location_response(self, 
+                                          location: str, 
+                                          business_type: str, 
+                                          parameters: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Analyse un emplacement commercial spécifique.
+        Génère une réponse simulée pour l'analyse d'emplacement commercial.
         
         Args:
-            location: Nom ou coordonnées de l'emplacement
-            parameters: Paramètres spécifiques pour l'analyse
+            location (str): Nom de l'emplacement
+            business_type (str): Type de commerce
+            parameters (dict): Paramètres d'analyse
             
         Returns:
-            Résultats de l'analyse avec recommandations
+            dict: Réponse simulée
         """
-        prompt = f"""Analyser l'emplacement optimal pour une pharmacie dans la zone {location}.
-Prendre en compte les facteurs suivants:
-- Densité de population
-- Flux de circulation
-- Présence de concurrents
-- Accessibilité
-- Visibilité
-"""
+        # Ajuster légèrement les scores en fonction des paramètres
+        radius = parameters.get("radius", 500)
+        importance_factors = parameters.get("importance_factors", {})
         
-        if parameters:
-            prompt += "\nParamètres spécifiques:\n"
-            for key, value in parameters.items():
-                prompt += f"- {key}: {value}\n"
+        # Facteur de variation basé sur le rayon (plus le rayon est grand, plus le score est bas)
+        radius_factor = 1.0 - (radius - 500) / 1000 if radius > 500 else 1.0 + (500 - radius) / 1000
+        radius_factor = max(0.8, min(1.2, radius_factor))
         
-        response = self.generate_response(prompt, {"location": location, "parameters": parameters})
+        # Scores de base
+        poi_score = 8.5 * radius_factor
+        road_score = 7.2 * radius_factor
+        competition_score = 5.0 * radius_factor
         
-        # Structuration de la réponse
+        # Ajustement en fonction des facteurs d'importance
+        pop_factor = importance_factors.get("population", 0.4)
+        comp_factor = importance_factors.get("competition", 0.3)
+        acc_factor = importance_factors.get("accessibility", 0.2)
+        vis_factor = importance_factors.get("visibility", 0.1)
+        
+        # Score global ajusté
+        global_score = (
+            poi_score * pop_factor + 
+            road_score * acc_factor + 
+            competition_score * comp_factor +
+            (poi_score + road_score) / 2 * vis_factor
+        )
+        
+        # Arrondir les scores à 1 décimale
+        global_score = round(global_score, 1)
+        poi_score = round(poi_score, 1)
+        road_score = round(road_score, 1)
+        competition_score = round(competition_score, 1)
+        
         return {
             "location": location,
-            "analysis": response,
-            "recommendations": self._extract_recommendations(response),
-            "score": self._extract_score(response)
+            "business_type": business_type,
+            "analysis_results": {
+                "poi_counts": {
+                    "pharmacy": 5,
+                    "hospital": 2,
+                    "school": 8,
+                    "supermarket": 6,
+                    "bus_stop": 15
+                },
+                "road_density": 0.015,
+                "competitors": 5,
+                "score": {
+                    "poi_score": poi_score,
+                    "road_score": road_score,
+                    "competition_score": competition_score,
+                    "global_score": global_score
+                }
+            },
+            "ai_recommendations": {
+                "location": location,
+                "analysis": f"Analyse d'emplacement commercial pour {location}:\n\nAprès analyse des données démographiques, des flux de circulation et de la concurrence, voici mes recommandations:\n\n1. Emplacement optimal: Le secteur nord-est de la zone présente le meilleur potentiel avec un score d'attractivité de 8.7/10.\n   - Avantages: Forte densité de population (environ 5000 habitants dans un rayon de 500m), proximité d'un centre médical, bon accès aux transports en commun.\n   - Inconvénients: Présence d'un concurrent à 800m, stationnement limité.\n\n2. Emplacement alternatif: Le carrefour central avec un score d'attractivité de 7.9/10.\n   - Avantages: Excellente visibilité, fort passage piétonnier (environ 1200 personnes/heure), synergie avec commerces existants.\n   - Inconvénients: Loyer potentiellement plus élevé, concurrence plus forte.\n\n3. Emplacement de niche: La zone résidentielle sud avec un score de 7.2/10.\n   - Avantages: Faible concurrence, population vieillissante (bon marché pour une pharmacie), stationnement facile.\n   - Inconvénients: Moindre visibilité, accès limité en transports en commun.\n\nJe recommande de privilégier le premier emplacement qui offre le meilleur équilibre entre accessibilité, visibilité et potentiel commercial.",
+                "recommendations": [
+                    "Je recommande de privilégier le premier emplacement qui offre le meilleur équilibre entre accessibilité, visibilité et potentiel commercial."
+                ],
+                "score": {
+                    "emplacement_1": 8.7,
+                    "emplacement_2": 7.9,
+                    "emplacement_3": 7.2
+                }
+            },
+            "visualizations": {
+                "map": "/static/visualizations/location_map.html",
+                "heatmap": "/static/visualizations/location_heatmap.png"
+            }
         }
     
-    def analyze_soil_quality(self, location: str, crop_type: str = "stevia", parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    def _mock_soil_quality_response(self, 
+                                   location: str, 
+                                   crop_type: str, 
+                                   parameters: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Analyse la qualité des sols pour une culture spécifique.
+        Génère une réponse simulée pour l'analyse de la qualité des sols.
         
         Args:
-            location: Nom ou coordonnées de la parcelle
-            crop_type: Type de culture (par défaut: stevia)
-            parameters: Paramètres spécifiques pour l'analyse
+            location (str): Nom de l'emplacement
+            crop_type (str): Type de culture
+            parameters (dict): Paramètres d'analyse
             
         Returns:
-            Résultats de l'analyse avec recommandations
+            dict: Réponse simulée
         """
-        prompt = f"""Analyser la qualité des sols pour la culture de {crop_type} dans la parcelle située à {location}.
-Prendre en compte les facteurs suivants:
-- Texture et structure du sol
-- pH et composition chimique
-- Drainage et capacité de rétention d'eau
-- Conditions climatiques locales
-"""
+        # Ajuster légèrement les scores en fonction des paramètres
+        depth = parameters.get("depth", 30)
+        importance_factors = parameters.get("importance_factors", {})
         
-        if parameters:
-            prompt += "\nParamètres spécifiques:\n"
-            for key, value in parameters.items():
-                prompt += f"- {key}: {value}\n"
+        # Facteur de variation basé sur la profondeur (plus la profondeur est grande, plus le score est précis)
+        depth_factor = 1.0 + (depth - 30) / 100 if depth > 30 else 1.0 - (30 - depth) / 100
+        depth_factor = max(0.9, min(1.1, depth_factor))
         
-        response = self.generate_response(prompt, {"location": location, "crop_type": crop_type, "parameters": parameters})
+        # Scores de base
+        ph_score = 8.5 * depth_factor
+        drainage_score = 9.0 * depth_factor
+        texture_score = 8.0 * depth_factor
+        organic_score = 7.6 * depth_factor
         
-        # Structuration de la réponse
+        # Ajustement en fonction des facteurs d'importance
+        ph_factor = importance_factors.get("ph", 0.3)
+        drainage_factor = importance_factors.get("drainage", 0.3)
+        texture_factor = importance_factors.get("texture", 0.2)
+        organic_factor = importance_factors.get("organic_matter", 0.2)
+        
+        # Score global ajusté
+        global_score = (
+            ph_score * ph_factor + 
+            drainage_score * drainage_factor + 
+            texture_score * texture_factor +
+            organic_score * organic_factor
+        )
+        
+        # Arrondir les scores à 1 décimale
+        global_score = round(global_score, 1)
+        ph_score = round(ph_score, 1)
+        drainage_score = round(drainage_score, 1)
+        texture_score = round(texture_score, 1)
+        organic_score = round(organic_score, 1)
+        
         return {
             "location": location,
             "crop_type": crop_type,
-            "analysis": response,
-            "zones": self._extract_zones(response),
-            "recommendations": self._extract_recommendations(response)
+            "analysis_results": {
+                "soil_properties": {
+                    "texture": "limoneux-sableux",
+                    "ph": 6.5,
+                    "organic_matter": 2.8,
+                    "drainage": "bon",
+                    "depth": "profond (>60cm)",
+                    "water_retention": "moyenne"
+                },
+                "compatibility": {
+                    "ph_score": ph_score,
+                    "drainage_score": drainage_score,
+                    "texture_score": texture_score,
+                    "organic_score": organic_score,
+                    "global_score": global_score
+                },
+                "zones": [
+                    {
+                        "name": "Zone optimale",
+                        "proportion": 40,
+                        "score": 8.7,
+                        "color": "green"
+                    },
+                    {
+                        "name": "Zone intermédiaire",
+                        "proportion": 35,
+                        "score": 6.5,
+                        "color": "yellow"
+                    },
+                    {
+                        "name": "Zone peu adaptée",
+                        "proportion": 25,
+                        "score": 4.2,
+                        "color": "red"
+                    }
+                ]
+            },
+            "ai_recommendations": {
+                "location": location,
+                "crop_type": crop_type,
+                "analysis": f"Analyse de la qualité des sols pour {location} concernant la culture de {crop_type}:\n\nAprès analyse des données pédologiques, climatiques et hydrologiques, voici mes conclusions:\n\n1. Zone optimale: La partie sud-est de la parcelle (environ 40% de la surface totale) présente les meilleures conditions.\n   - Caractéristiques: Sol limoneux-sableux, pH 6.2-6.8 (légèrement acide, idéal pour la stevia), bonne capacité de drainage.\n   - Recommandations: Aucun amendement majeur nécessaire, système d'irrigation goutte-à-goutte recommandé.\n\n2. Zone intermédiaire: La partie centrale (environ 35% de la surface).\n   - Caractéristiques: Sol plus argileux, pH 5.8-6.2 (un peu trop acide), drainage moyen.\n   - Recommandations: Amendement calcaire léger (500kg/ha), amélioration du drainage par sous-solage.\n\n3. Zone peu adaptée: La partie nord-ouest (environ 25% de la surface).\n   - Caractéristiques: Sol lourd et compacté, pH 5.5 (trop acide), risque d'engorgement.\n   - Recommandations: Utiliser pour d'autres cultures ou réaliser des travaux importants (drainage, amendements organiques et calcaires).\n\nPour maximiser le rendement de stevia, je recommande de concentrer la culture sur les zones 1 et 2, avec les amendements appropriés pour la zone 2. La zone 3 pourrait être réservée à d'autres cultures moins sensibles aux conditions acides et à l'engorgement.",
+                "zones": [
+                    {
+                        "name": "Zone optimale",
+                        "proportion": 40,
+                        "characteristics": ["Sol limoneux-sableux", "pH 6.2-6.8", "Bonne capacité de drainage"],
+                        "recommendations": ["Aucun amendement majeur nécessaire", "Système d'irrigation goutte-à-goutte recommandé"]
+                    },
+                    {
+                        "name": "Zone intermédiaire",
+                        "proportion": 35,
+                        "characteristics": ["Sol plus argileux", "pH 5.8-6.2", "Drainage moyen"],
+                        "recommendations": ["Amendement calcaire léger (500kg/ha)", "Amélioration du drainage par sous-solage"]
+                    },
+                    {
+                        "name": "Zone peu adaptée",
+                        "proportion": 25,
+                        "characteristics": ["Sol lourd et compacté", "pH 5.5", "Risque d'engorgement"],
+                        "recommendations": ["Utiliser pour d'autres cultures", "Ou réaliser des travaux importants (drainage, amendements)"]
+                    }
+                ],
+                "recommendations": [
+                    "Pour maximiser le rendement de stevia, je recommande de concentrer la culture sur les zones 1 et 2, avec les amendements appropriés pour la zone 2.",
+                    "La zone 3 pourrait être réservée à d'autres cultures moins sensibles aux conditions acides et à l'engorgement."
+                ]
+            },
+            "visualizations": {
+                "map": "/static/visualizations/soil_map.html",
+                "soil_map": "/static/visualizations/soil_quality_map.png"
+            }
         }
-    
-    def _extract_recommendations(self, text: str) -> List[str]:
-        """Extrait les recommandations d'un texte"""
-        recommendations = []
-        lines = text.split('\n')
-        
-        for i, line in enumerate(lines):
-            if "recommand" in line.lower():
-                recommendations.append(line)
-                # Ajouter aussi la ligne suivante si elle existe et n'est pas vide
-                if i+1 < len(lines) and lines[i+1].strip():
-                    recommendations.append(lines[i+1])
-        
-        return recommendations if recommendations else ["Pas de recommandations spécifiques identifiées."]
-    
-    def _extract_score(self, text: str) -> Dict[str, float]:
-        """Extrait les scores d'attractivité d'un texte"""
-        scores = {}
-        import re
-        
-        # Recherche des patterns comme "score d'attractivité de 8.7/10"
-        score_patterns = re.finditer(r"score\s+d[e']attractivit[ée]\s+de\s+(\d+\.\d+)\/10", text, re.IGNORECASE)
-        
-        for i, match in enumerate(score_patterns):
-            scores[f"emplacement_{i+1}"] = float(match.group(1))
-        
-        return scores if scores else {"score_global": 5.0}  # Valeur par défaut
-    
-    def _extract_zones(self, text: str) -> List[Dict[str, Any]]:
-        """Extrait les informations sur les zones de qualité des sols"""
-        zones = []
-        lines = text.split('\n')
-        current_zone = None
-        
-        for line in lines:
-            if "Zone" in line and ":" in line:
-                if current_zone:
-                    zones.append(current_zone)
-                
-                # Extraire le type de zone et sa proportion
-                import re
-                proportion_match = re.search(r"\(environ\s+(\d+)%", line)
-                proportion = int(proportion_match.group(1)) if proportion_match else None
-                
-                current_zone = {
-                    "name": line.split(":")[0].strip(),
-                    "description": line.split(":")[1].strip(),
-                    "proportion": proportion,
-                    "characteristics": [],
-                    "recommendations": []
-                }
-            elif current_zone and "Caractéristiques:" in line:
-                current_zone["characteristics"].append(line.replace("Caractéristiques:", "").strip())
-            elif current_zone and "Recommandations:" in line:
-                current_zone["recommendations"].append(line.replace("Recommandations:", "").strip())
-        
-        # Ajouter la dernière zone
-        if current_zone:
-            zones.append(current_zone)
-        
-        return zones if zones else [{"name": "Zone unique", "proportion": 100, "characteristics": [], "recommendations": []}]

@@ -1,98 +1,115 @@
 """
 Routes pour l'API d'analyse de la qualité des sols.
 """
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for
+import json
 from src.services.soil_quality_service import SoilQualityService
+from src.models.soil_quality import SoilQuality
 
-# Création du blueprint
-soil_bp = Blueprint('soil', __name__, url_prefix='/api/soil')
+# Créer un blueprint pour les routes d'analyse des sols
+soil_bp = Blueprint('soil', __name__)
 
-# Initialisation du service
+# Initialiser le service
 soil_service = SoilQualityService(use_mock=True)
 
+@soil_bp.route('/')
+def index():
+    """
+    Page principale d'analyse de la qualité des sols.
+    """
+    return render_template('soil.html')
+
 @soil_bp.route('/analyze', methods=['POST'])
-def analyze_soil():
+def analyze():
     """
     Endpoint pour analyser la qualité des sols.
-    
-    Exemple de requête:
-    {
-        "location": "Toulouse, France",
-        "crop_type": "stevia",
-        "parameters": {
-            "depth": 30,
-            "importance_factors": {
-                "ph": 0.3,
-                "drainage": 0.3,
-                "texture": 0.2,
-                "organic_matter": 0.2
-            }
-        }
-    }
     """
-    data = request.json
-    
-    if not data or 'location' not in data:
-        return jsonify({"error": "La localisation est requise"}), 400
-    
-    location = data.get('location')
-    crop_type = data.get('crop_type', 'stevia')
-    parameters = data.get('parameters', {})
-    
-    # Appel au service d'analyse
-    results = soil_service.analyze_soil(location, crop_type, parameters)
-    
-    # Transformation des chemins de fichiers en URLs relatives
-    if 'visualizations' in results:
-        for key, path in results['visualizations'].items():
-            if path.startswith('src/static/'):
-                results['visualizations'][key] = '/' + path.replace('src/static/', 'static/')
-    
-    return jsonify(results)
-
-@soil_bp.route('/examples', methods=['GET'])
-def get_examples():
-    """Renvoie des exemples de paramètres pour l'analyse de la qualité des sols."""
-    examples = [
-        {
-            "location": "Toulouse, France",
-            "crop_type": "stevia",
-            "parameters": {
-                "depth": 30,
-                "importance_factors": {
-                    "ph": 0.3,
-                    "drainage": 0.3,
-                    "texture": 0.2,
-                    "organic_matter": 0.2
-                }
-            }
-        },
-        {
-            "location": "Bordeaux, France",
-            "crop_type": "stevia",
-            "parameters": {
-                "depth": 40,
-                "importance_factors": {
-                    "ph": 0.25,
-                    "drainage": 0.35,
-                    "texture": 0.2,
-                    "organic_matter": 0.2
-                }
-            }
-        },
-        {
-            "location": "Montpellier, France",
-            "crop_type": "stevia",
-            "parameters": {
-                "depth": 35,
-                "importance_factors": {
-                    "ph": 0.3,
-                    "drainage": 0.25,
-                    "texture": 0.25,
-                    "organic_matter": 0.2
-                }
-            }
+    try:
+        # Récupérer les données du formulaire
+        data = request.form if request.form else request.get_json()
+        
+        # Créer un objet SoilQuality
+        soil = SoilQuality(
+            location_name=data.get('location', ''),
+            crop_type=data.get('crop_type', ''),
+            depth=int(data.get('depth', 30))
+        )
+        
+        # Récupérer les facteurs d'importance
+        importance_factors = {
+            'ph': float(data.get('ph_factor', 0.3)),
+            'drainage': float(data.get('drainage_factor', 0.3)),
+            'texture': float(data.get('texture_factor', 0.2)),
+            'organic_matter': float(data.get('organic_matter_factor', 0.2))
         }
-    ]
+        soil.importance_factors = importance_factors
+        
+        # Analyser le sol
+        result = soil_service.analyze_soil(soil)
+        
+        # Si la requête vient de l'API, renvoyer un JSON
+        if request.is_json:
+            return jsonify(result.to_dict())
+        
+        # Sinon, rediriger vers la page de résultats
+        return render_template('soil.html', 
+                              soil=soil.to_dict(), 
+                              result=result.to_dict(),
+                              active_tab='results')
+        
+    except Exception as e:
+        error_message = f"Erreur lors de l'analyse: {str(e)}"
+        if request.is_json:
+            return jsonify({'error': error_message}), 500
+        return render_template('soil.html', error=error_message)
+
+@soil_bp.route('/api/analyze', methods=['POST'])
+def api_analyze():
+    """
+    Endpoint API pour analyser la qualité des sols.
+    """
+    try:
+        # Récupérer les données JSON
+        data = request.get_json()
+        
+        # Créer un objet SoilQuality
+        soil = SoilQuality(
+            location_name=data.get('location', ''),
+            crop_type=data.get('crop_type', ''),
+            depth=data.get('parameters', {}).get('depth', 30)
+        )
+        
+        # Récupérer les facteurs d'importance
+        importance_factors = data.get('parameters', {}).get('importance_factors', {})
+        if importance_factors:
+            soil.importance_factors = importance_factors
+        
+        # Analyser le sol
+        result = soil_service.analyze_soil(soil)
+        
+        # Renvoyer les résultats
+        return jsonify(result.to_dict())
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@soil_bp.route('/example')
+def load_example():
+    """
+    Charge un exemple d'analyse.
+    """
+    # Créer un exemple de sol
+    soil = SoilQuality(
+        location_name="Toulouse, France",
+        crop_type="Stevia",
+        depth=30
+    )
     
-    return jsonify(examples)
+    # Analyser le sol
+    result = soil_service.analyze_soil(soil)
+    
+    # Renvoyer la page avec les résultats
+    return render_template('soil.html', 
+                          soil=soil.to_dict(), 
+                          result=result.to_dict(),
+                          active_tab='results')

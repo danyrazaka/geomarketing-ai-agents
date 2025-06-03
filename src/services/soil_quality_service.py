@@ -4,390 +4,234 @@ Service pour l'analyse de la qualité des sols.
 import os
 import json
 import geopandas as gpd
+import pandas as pd
 import folium
 import matplotlib.pyplot as plt
+import seaborn as sns
+from typing import Dict, Any, List, Optional, Tuple
+import osmnx as ox
+from shapely.geometry import Point, Polygon
 import numpy as np
-from typing import Dict, Any, List, Tuple
-from src.utils.deepseek_client import DeepSeekClient
+from src.utils.deepseek_client import DeepseekClient
+from src.models.soil_quality import SoilQuality
+from src.models.analysis_result import AnalysisResult
 
 class SoilQualityService:
     """
-    Service pour analyser la qualité des sols pour différentes cultures.
+    Service pour l'analyse de la qualité des sols.
     """
     def __init__(self, use_mock: bool = True):
         """
         Initialise le service d'analyse de la qualité des sols.
         
         Args:
-            use_mock: Si True, utilise des données mockées pour le développement
+            use_mock (bool): Si True, utilise des données simulées au lieu de données réelles.
         """
         self.use_mock = use_mock
-        self.ai_client = DeepSeekClient(use_mock=use_mock)
+        self.deepseek_client = DeepseekClient(use_mock=use_mock)
+        self.cache_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
+                                     "src", "static", "visualizations")
+        os.makedirs(self.cache_dir, exist_ok=True)
         
-    def analyze_soil(self, location: str, crop_type: str = "stevia", 
-                    parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    def analyze_soil(self, soil: SoilQuality) -> AnalysisResult:
         """
-        Analyse la qualité des sols pour une culture spécifique.
+        Analyse la qualité des sols.
         
         Args:
-            location: Nom ou coordonnées de la parcelle (ex: "Toulouse, France")
-            crop_type: Type de culture (ex: "stevia")
-            parameters: Paramètres spécifiques pour l'analyse
+            soil (SoilQuality): Sol à analyser
             
         Returns:
-            Résultats de l'analyse avec recommandations et visualisations
+            AnalysisResult: Résultats de l'analyse
         """
-        if self.use_mock:
-            return self._mock_analysis(location, crop_type, parameters)
+        # Créer un résultat d'analyse
+        result = AnalysisResult(analysis_type="soil")
         
-        # Récupération des données pédologiques
         try:
-            # Récupérer les données de sol
-            gdf_soil = self._get_soil_data(location)
+            # Récupérer les données pédologiques
+            if not self.use_mock:
+                soil_data = self._get_soil_data(soil)
+            else:
+                soil_data = self._mock_soil_data(soil)
             
-            # Analyser les données
-            analysis_results = self._analyze_soil_data(gdf_soil, crop_type, parameters)
-            
-            # Générer des visualisations
-            map_path, soil_map_path = self._generate_visualizations(gdf_soil, analysis_results)
-            
-            # Obtenir des recommandations IA
-            ai_recommendations = self.ai_client.analyze_soil_quality(
-                location, 
-                crop_type,
-                parameters or {}
+            # Analyser les données avec DeepSeek R1
+            ai_analysis = self.deepseek_client.analyze_soil_quality(
+                soil.location_name,
+                soil.crop_type,
+                {
+                    "depth": soil.depth,
+                    "importance_factors": soil.importance_factors
+                }
             )
             
-            # Combiner les résultats
-            return {
-                "location": location,
-                "crop_type": crop_type,
-                "analysis_results": analysis_results,
-                "ai_recommendations": ai_recommendations,
-                "visualizations": {
-                    "map": map_path,
-                    "soil_map": soil_map_path
-                }
+            # Générer les visualisations
+            visualizations = self._generate_visualizations(soil, soil_data, ai_analysis)
+            
+            # Structurer les résultats
+            result.scores = ai_analysis.get("analysis_results", {}).get("compatibility", {})
+            result.recommendations = ai_analysis.get("ai_recommendations", {}).get("recommendations", [])
+            result.visualizations = visualizations
+            result.raw_data = {
+                "soil_data": soil_data,
+                "ai_analysis": ai_analysis
             }
+            
+            # Mettre à jour les résultats dans l'objet soil
+            soil.set_results({
+                "compatibility": result.scores,
+                "recommendations": result.recommendations,
+                "visualizations": result.visualizations
+            })
+            
+            return result
+            
         except Exception as e:
-            print(f"Error analyzing soil: {e}")
-            return self._mock_analysis(location, crop_type, parameters)
+            print(f"Erreur lors de l'analyse du sol: {e}")
+            result.add_score("error", 1.0)
+            result.add_recommendation(f"Une erreur est survenue lors de l'analyse: {str(e)}")
+            return result
     
-    def _get_soil_data(self, location: str) -> gpd.GeoDataFrame:
+    def _get_soil_data(self, soil: SoilQuality) -> Dict[str, Any]:
         """
-        Récupère les données pédologiques d'une zone.
+        Récupère les données pédologiques pour un sol.
         
         Args:
-            location: Nom ou coordonnées de la parcelle
+            soil (SoilQuality): Sol à analyser
             
         Returns:
-            GeoDataFrame contenant les données pédologiques
+            dict: Données pédologiques
         """
-        # Note: Dans une implémentation réelle, cette fonction récupérerait des données
-        # depuis des sources comme l'INRAE ou la FAO. Pour ce prototype, nous utilisons
-        # des données simulées.
+        # Récupérer les coordonnées géographiques si elles ne sont pas déjà définies
+        if soil.latitude == 0.0 and soil.longitude == 0.0:
+            try:
+                gdf = ox.geocode_to_gdf(soil.location_name)
+                soil.latitude = gdf.iloc[0].geometry.centroid.y
+                soil.longitude = gdf.iloc[0].geometry.centroid.x
+            except Exception as e:
+                print(f"Erreur lors de la géolocalisation: {e}")
+                # Valeurs par défaut pour Toulouse
+                soil.latitude = 43.6047
+                soil.longitude = 1.4442
         
-        # Récupérer les limites de la zone
-        area = gpd.GeoDataFrame()
+        # Créer un point pour l'emplacement
+        point = Point(soil.longitude, soil.latitude)
         
-        # Simuler des données pédologiques
-        # Dans une implémentation réelle, ces données proviendraient de sources externes
-        return {
-            'area': area,
-            'soil_data': gpd.GeoDataFrame()
-        }
-    
-    def _analyze_soil_data(self, gdf_soil: Dict[str, gpd.GeoDataFrame], 
-                          crop_type: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Analyse les données pédologiques pour évaluer la compatibilité avec une culture.
-        
-        Args:
-            gdf_soil: Dictionnaire de GeoDataFrames contenant les données pédologiques
-            crop_type: Type de culture
-            parameters: Paramètres spécifiques pour l'analyse
-            
-        Returns:
-            Résultats de l'analyse
-        """
-        # Exemple d'analyse simple
-        # Dans une implémentation réelle, cette fonction serait beaucoup plus complexe
-        
-        # Simuler des résultats d'analyse
-        soil_properties = {
-            "texture": "limoneux-sableux",
-            "ph": 6.5,
-            "organic_matter": 2.8,
-            "drainage": "bon"
-        }
-        
-        # Évaluer la compatibilité avec la culture spécifiée
-        compatibility = self._evaluate_crop_compatibility(soil_properties, crop_type)
-        
-        return {
-            'soil_properties': soil_properties,
-            'compatibility': compatibility,
-            'zones': self._identify_soil_zones(soil_properties, crop_type)
-        }
-    
-    def _evaluate_crop_compatibility(self, soil_properties: Dict[str, Any], 
-                                   crop_type: str) -> Dict[str, float]:
-        """
-        Évalue la compatibilité des propriétés du sol avec une culture spécifique.
-        
-        Args:
-            soil_properties: Propriétés du sol
-            crop_type: Type de culture
-            
-        Returns:
-            Scores de compatibilité pour différents critères
-        """
-        # Exemple d'évaluation simple
-        # Dans une implémentation réelle, cette fonction serait basée sur des
-        # connaissances agronomiques spécifiques à chaque culture
-        
-        # Évaluation pour la stevia (exemple)
-        if crop_type.lower() == "stevia":
-            # pH optimal pour la stevia: 6.0-7.5
-            ph = soil_properties.get("ph", 7.0)
-            ph_score = 10 - min(abs(ph - 6.75) * 3, 10)
-            
-            # Drainage: la stevia préfère un bon drainage
-            drainage = soil_properties.get("drainage", "moyen")
-            drainage_score = {"bon": 9, "moyen": 6, "faible": 3}.get(drainage, 5)
-            
-            # Texture: la stevia préfère les sols limoneux-sableux
-            texture = soil_properties.get("texture", "")
-            texture_score = 8 if "limoneux" in texture and "sableux" in texture else 5
-            
-            # Matière organique: la stevia bénéficie d'une bonne teneur
-            organic_matter = soil_properties.get("organic_matter", 2.0)
-            organic_score = min(organic_matter * 2, 10)
-            
-            # Score global
-            global_score = (ph_score * 0.3 + drainage_score * 0.3 + 
-                           texture_score * 0.2 + organic_score * 0.2)
-            
-            return {
-                "ph_score": round(ph_score, 1),
-                "drainage_score": round(drainage_score, 1),
-                "texture_score": round(texture_score, 1),
-                "organic_score": round(organic_score, 1),
-                "global_score": round(global_score, 1)
+        # Récupérer les données de sol
+        # Note: Dans une implémentation réelle, il faudrait accéder à des bases de données
+        # pédologiques comme celles de l'INRAE ou de la FAO
+        try:
+            # Simuler des données de sol pour l'instant
+            # Dans une version réelle, on utiliserait des services web ou des fichiers GeoTIFF
+            soil_properties = {
+                "texture": "limoneux-sableux",
+                "ph": 6.5,
+                "organic_matter": 2.8,
+                "drainage": "bon",
+                "depth": "profond (>60cm)",
+                "water_retention": "moyenne"
             }
-        
-        # Pour d'autres cultures, retourner des scores par défaut
-        return {
-            "global_score": 5.0,
-            "details": "Analyse détaillée non disponible pour cette culture"
-        }
-    
-    def _identify_soil_zones(self, soil_properties: Dict[str, Any], 
-                           crop_type: str) -> List[Dict[str, Any]]:
-        """
-        Identifie différentes zones dans la parcelle selon leur aptitude.
-        
-        Args:
-            soil_properties: Propriétés du sol
-            crop_type: Type de culture
             
-        Returns:
-            Liste des zones identifiées avec leurs caractéristiques
-        """
-        # Exemple simple de zonage
-        # Dans une implémentation réelle, cette fonction utiliserait des
-        # algorithmes de clustering sur des données spatiales
-        
-        # Simuler trois zones avec différentes aptitudes
-        return [
-            {
-                "name": "Zone optimale",
-                "proportion": 40,
-                "properties": {
+            # Simuler des zones de qualité de sol
+            zones = [
+                {
+                    "name": "Zone optimale",
+                    "proportion": 40,
+                    "score": 8.7,
+                    "color": "#1a9641",
+                    "polygon": self._generate_random_polygon(soil.latitude, soil.longitude, 0.005, 0.002)
+                },
+                {
+                    "name": "Zone intermédiaire",
+                    "proportion": 35,
+                    "score": 6.5,
+                    "color": "#a6d96a",
+                    "polygon": self._generate_random_polygon(soil.latitude - 0.003, soil.longitude - 0.002, 0.004, 0.002)
+                },
+                {
+                    "name": "Zone peu adaptée",
+                    "proportion": 25,
+                    "score": 4.2,
+                    "color": "#d7191c",
+                    "polygon": self._generate_random_polygon(soil.latitude - 0.006, soil.longitude - 0.004, 0.003, 0.002)
+                }
+            ]
+            
+            # Simuler des échantillons de sol
+            samples = [
+                {
+                    "position": [soil.latitude + 0.002, soil.longitude + 0.001],
                     "ph": 6.5,
                     "texture": "limoneux-sableux",
-                    "drainage": "bon"
+                    "organic_matter": 2.8
                 },
-                "score": 8.7,
-                "recommendations": "Aucun amendement majeur nécessaire"
-            },
-            {
-                "name": "Zone intermédiaire",
-                "proportion": 35,
-                "properties": {
+                {
+                    "position": [soil.latitude - 0.002, soil.longitude - 0.001],
                     "ph": 6.0,
-                    "texture": "limoneux-argileux",
-                    "drainage": "moyen"
-                },
-                "score": 6.5,
-                "recommendations": "Amendement calcaire léger recommandé"
-            },
-            {
-                "name": "Zone peu adaptée",
-                "proportion": 25,
-                "properties": {
-                    "ph": 5.5,
                     "texture": "argileux",
-                    "drainage": "faible"
+                    "organic_matter": 2.2
                 },
-                "score": 4.2,
-                "recommendations": "Nécessite des travaux importants ou changement de culture"
+                {
+                    "position": [soil.latitude - 0.005, soil.longitude - 0.003],
+                    "ph": 5.5,
+                    "texture": "lourd et compacté",
+                    "organic_matter": 1.8
+                }
+            ]
+            
+            return {
+                "location": {
+                    "name": soil.location_name,
+                    "latitude": soil.latitude,
+                    "longitude": soil.longitude
+                },
+                "crop_type": soil.crop_type,
+                "soil_properties": soil_properties,
+                "zones": zones,
+                "samples": samples
             }
-        ]
+            
+        except Exception as e:
+            print(f"Erreur lors de la récupération des données pédologiques: {e}")
+            return {
+                "location": {
+                    "name": soil.location_name,
+                    "latitude": soil.latitude,
+                    "longitude": soil.longitude
+                },
+                "crop_type": soil.crop_type,
+                "error": str(e)
+            }
     
-    def _generate_visualizations(self, gdf_soil: Dict[str, gpd.GeoDataFrame], 
-                               analysis_results: Dict[str, Any]) -> Tuple[str, str]:
+    def _mock_soil_data(self, soil: SoilQuality) -> Dict[str, Any]:
         """
-        Génère des visualisations pour les résultats de l'analyse.
+        Génère des données pédologiques simulées pour un sol.
         
         Args:
-            gdf_soil: Dictionnaire de GeoDataFrames contenant les données pédologiques
-            analysis_results: Résultats de l'analyse
+            soil (SoilQuality): Sol à analyser
             
         Returns:
-            Chemins vers les fichiers de visualisation générés
+            dict: Données pédologiques simulées
         """
-        # Créer un dossier pour les visualisations si nécessaire
-        os.makedirs('src/static/visualizations', exist_ok=True)
+        # Si les coordonnées ne sont pas définies, utiliser des valeurs par défaut
+        if soil.latitude == 0.0 and soil.longitude == 0.0:
+            # Coordonnées par défaut en fonction du nom de l'emplacement
+            if "paris" in soil.location_name.lower():
+                soil.latitude = 48.8566
+                soil.longitude = 2.3522
+            elif "lyon" in soil.location_name.lower():
+                soil.latitude = 45.7578
+                soil.longitude = 4.8320
+            elif "marseille" in soil.location_name.lower():
+                soil.latitude = 43.2965
+                soil.longitude = 5.3698
+            elif "toulouse" in soil.location_name.lower():
+                soil.latitude = 43.6047
+                soil.longitude = 1.4442
+            else:
+                # Toulouse par défaut
+                soil.latitude = 43.6047
+                soil.longitude = 1.4442
         
-        # Générer une carte interactive avec Folium
-        map_path = 'src/static/visualizations/soil_map.html'
-        
-        # Carte par défaut (centrée sur la France)
-        m = folium.Map(location=[46.2276, 2.2137], zoom_start=6)
-        
-        # Ajouter les zones si disponibles
-        if 'zones' in analysis_results:
-            # Dans une implémentation réelle, ces zones seraient basées sur des
-            # géométries réelles. Ici, nous simulons des cercles pour l'exemple.
-            colors = ['green', 'yellow', 'red']
-            for i, zone in enumerate(analysis_results['zones']):
-                if i < len(colors):
-                    folium.Circle(
-                        location=[46.2276 + i*0.01, 2.2137 + i*0.01],
-                        radius=zone['proportion'] * 100,
-                        color=colors[i],
-                        fill=True,
-                        fill_opacity=0.6,
-                        popup=f"{zone['name']}: {zone['score']}/10"
-                    ).add_to(m)
-        
-        # Sauvegarder la carte
-        m.save(map_path)
-        
-        # Générer une carte de qualité des sols
-        soil_map_path = 'src/static/visualizations/soil_quality_map.png'
-        
-        plt.figure(figsize=(10, 8))
-        plt.title('Qualité des sols pour la culture')
-        
-        # Exemple simple de carte de qualité des sols
-        # Dans une implémentation réelle, cette visualisation serait basée sur des données réelles
-        x = np.linspace(0, 10, 20)
-        y = np.linspace(0, 10, 20)
-        X, Y = np.meshgrid(x, y)
-        
-        # Simuler différentes zones de qualité
-        Z = np.zeros_like(X)
-        for i in range(Z.shape[0]):
-            for j in range(Z.shape[1]):
-                # Zone 1: optimale (coin supérieur gauche)
-                if i < 10 and j < 10:
-                    Z[i, j] = 8 + np.random.rand()
-                # Zone 2: intermédiaire (centre)
-                elif 5 <= i < 15 and 5 <= j < 15:
-                    Z[i, j] = 6 + np.random.rand()
-                # Zone 3: peu adaptée (coin inférieur droit)
-                else:
-                    Z[i, j] = 4 + np.random.rand()
-        
-        plt.contourf(X, Y, Z, cmap='RdYlGn', levels=10)
-        plt.colorbar(label='Score de compatibilité')
-        plt.xlabel('Est-Ouest')
-        plt.ylabel('Nord-Sud')
-        plt.savefig(soil_map_path)
-        plt.close()
-        
-        return map_path, soil_map_path
-    
-    def _mock_analysis(self, location: str, crop_type: str, 
-                      parameters: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Génère une analyse mockée pour le développement et les tests.
-        
-        Args:
-            location: Nom ou coordonnées de la parcelle
-            crop_type: Type de culture
-            parameters: Paramètres spécifiques pour l'analyse
-            
-        Returns:
-            Résultats mockés de l'analyse
-        """
-        # Créer un dossier pour les visualisations si nécessaire
-        os.makedirs('src/static/visualizations', exist_ok=True)
-        
-        # Générer une carte simple
-        map_path = 'src/static/visualizations/soil_map.html'
-        m = folium.Map(location=[43.6047, 1.4442], zoom_start=12)  # Toulouse
-        
-        # Ajouter des zones simulées
-        zones = [
-            {"name": "Zone optimale", "proportion": 40, "score": 8.7, "color": "green"},
-            {"name": "Zone intermédiaire", "proportion": 35, "score": 6.5, "color": "yellow"},
-            {"name": "Zone peu adaptée", "proportion": 25, "score": 4.2, "color": "red"}
-        ]
-        
-        for i, zone in enumerate(zones):
-            folium.Circle(
-                location=[43.6047 + i*0.01, 1.4442 + i*0.01],
-                radius=zone['proportion'] * 100,
-                color=zone['color'],
-                fill=True,
-                fill_opacity=0.6,
-                popup=f"{zone['name']}: {zone['score']}/10"
-            ).add_to(m)
-        
-        m.save(map_path)
-        
-        # Générer une carte de qualité des sols
-        soil_map_path = 'src/static/visualizations/soil_quality_map.png'
-        
-        plt.figure(figsize=(10, 8))
-        plt.title(f'Qualité des sols pour la culture de {crop_type} (Données simulées)')
-        
-        x = np.linspace(0, 10, 20)
-        y = np.linspace(0, 10, 20)
-        X, Y = np.meshgrid(x, y)
-        
-        # Simuler différentes zones de qualité
-        Z = np.zeros_like(X)
-        for i in range(Z.shape[0]):
-            for j in range(Z.shape[1]):
-                # Zone 1: optimale (coin supérieur gauche)
-                if i < 10 and j < 10:
-                    Z[i, j] = 8 + np.random.rand()
-                # Zone 2: intermédiaire (centre)
-                elif 5 <= i < 15 and 5 <= j < 15:
-                    Z[i, j] = 6 + np.random.rand()
-                # Zone 3: peu adaptée (coin inférieur droit)
-                else:
-                    Z[i, j] = 4 + np.random.rand()
-        
-        plt.contourf(X, Y, Z, cmap='RdYlGn', levels=10)
-        plt.colorbar(label='Score de compatibilité')
-        plt.xlabel('Est-Ouest')
-        plt.ylabel('Nord-Sud')
-        plt.savefig(soil_map_path)
-        plt.close()
-        
-        # Obtenir des recommandations IA mockées
-        ai_recommendations = self.ai_client.analyze_soil_quality(
-            location, 
-            crop_type,
-            parameters or {}
-        )
-        
-        # Propriétés du sol mockées
+        # Générer des propriétés de sol simulées
         soil_properties = {
             "texture": "limoneux-sableux",
             "ph": 6.5,
@@ -397,24 +241,281 @@ class SoilQualityService:
             "water_retention": "moyenne"
         }
         
-        # Résultats mockés
-        return {
-            "location": location,
-            "crop_type": crop_type,
-            "analysis_results": {
-                "soil_properties": soil_properties,
-                "compatibility": {
-                    "ph_score": 8.5,
-                    "drainage_score": 9.0,
-                    "texture_score": 8.0,
-                    "organic_score": 7.6,
-                    "global_score": 8.3
-                },
-                "zones": zones
+        # Ajuster les propriétés en fonction du type de culture
+        if soil.crop_type.lower() == "stevia":
+            # La stevia préfère un sol légèrement acide
+            soil_properties["ph"] = 6.2
+        elif soil.crop_type.lower() == "blé":
+            # Le blé préfère un sol neutre à légèrement alcalin
+            soil_properties["ph"] = 7.0
+            soil_properties["texture"] = "limoneux"
+        elif soil.crop_type.lower() == "riz":
+            # Le riz préfère un sol argileux avec bonne rétention d'eau
+            soil_properties["texture"] = "argileux"
+            soil_properties["water_retention"] = "élevée"
+            soil_properties["drainage"] = "moyen"
+        
+        # Générer des zones de qualité de sol
+        zones = [
+            {
+                "name": "Zone optimale",
+                "proportion": 40,
+                "score": 8.7,
+                "color": "#1a9641",
+                "polygon": self._generate_random_polygon(soil.latitude, soil.longitude, 0.005, 0.002)
             },
-            "ai_recommendations": ai_recommendations,
-            "visualizations": {
-                "map": map_path,
-                "soil_map": soil_map_path
+            {
+                "name": "Zone intermédiaire",
+                "proportion": 35,
+                "score": 6.5,
+                "color": "#a6d96a",
+                "polygon": self._generate_random_polygon(soil.latitude - 0.003, soil.longitude - 0.002, 0.004, 0.002)
+            },
+            {
+                "name": "Zone peu adaptée",
+                "proportion": 25,
+                "score": 4.2,
+                "color": "#d7191c",
+                "polygon": self._generate_random_polygon(soil.latitude - 0.006, soil.longitude - 0.004, 0.003, 0.002)
             }
+        ]
+        
+        # Générer des échantillons de sol
+        samples = [
+            {
+                "position": [soil.latitude + 0.002, soil.longitude + 0.001],
+                "ph": 6.5,
+                "texture": "limoneux-sableux",
+                "organic_matter": 2.8
+            },
+            {
+                "position": [soil.latitude - 0.002, soil.longitude - 0.001],
+                "ph": 6.0,
+                "texture": "argileux",
+                "organic_matter": 2.2
+            },
+            {
+                "position": [soil.latitude - 0.005, soil.longitude - 0.003],
+                "ph": 5.5,
+                "texture": "lourd et compacté",
+                "organic_matter": 1.8
+            }
+        ]
+        
+        return {
+            "location": {
+                "name": soil.location_name,
+                "latitude": soil.latitude,
+                "longitude": soil.longitude
+            },
+            "crop_type": soil.crop_type,
+            "soil_properties": soil_properties,
+            "zones": zones,
+            "samples": samples
         }
+    
+    def _generate_random_polygon(self, 
+                               center_lat: float, 
+                               center_lon: float, 
+                               radius_lat: float, 
+                               radius_lon: float) -> List[List[float]]:
+        """
+        Génère un polygone aléatoire autour d'un point central.
+        
+        Args:
+            center_lat (float): Latitude du centre
+            center_lon (float): Longitude du centre
+            radius_lat (float): Rayon en latitude
+            radius_lon (float): Rayon en longitude
+            
+        Returns:
+            list: Liste de points [lat, lon] formant le polygone
+        """
+        # Nombre de points du polygone
+        n_points = np.random.randint(5, 10)
+        
+        # Générer des angles aléatoires
+        angles = np.sort(np.random.random(n_points) * 2 * np.pi)
+        
+        # Générer des rayons aléatoires
+        radii_lat = np.random.random(n_points) * 0.5 + 0.5  # Entre 0.5 et 1.0
+        radii_lon = np.random.random(n_points) * 0.5 + 0.5  # Entre 0.5 et 1.0
+        
+        # Générer les points du polygone
+        polygon = []
+        for i in range(n_points):
+            lat = center_lat + radius_lat * radii_lat[i] * np.sin(angles[i])
+            lon = center_lon + radius_lon * radii_lon[i] * np.cos(angles[i])
+            polygon.append([lat, lon])
+        
+        return polygon
+    
+    def _generate_visualizations(self, 
+                               soil: SoilQuality, 
+                               soil_data: Dict[str, Any], 
+                               ai_analysis: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Génère les visualisations pour l'analyse de la qualité des sols.
+        
+        Args:
+            soil (SoilQuality): Sol analysé
+            soil_data (dict): Données pédologiques
+            ai_analysis (dict): Analyse IA
+            
+        Returns:
+            dict: Chemins vers les visualisations générées
+        """
+        visualizations = {}
+        
+        # Utiliser les visualisations simulées
+        visualizations["map"] = "/static/visualizations/soil_map.html"
+        visualizations["soil_map"] = "/static/visualizations/soil_quality_map.png"
+        
+        # Si on n'utilise pas les mocks, générer des visualisations réelles
+        if not self.use_mock:
+            try:
+                # Générer une carte interactive
+                map_path = self._generate_interactive_map(soil, soil_data, ai_analysis)
+                visualizations["map"] = map_path
+                
+                # Générer une carte de qualité des sols
+                soil_map_path = self._generate_soil_quality_map(soil, soil_data, ai_analysis)
+                visualizations["soil_map"] = soil_map_path
+            except Exception as e:
+                print(f"Erreur lors de la génération des visualisations: {e}")
+        
+        return visualizations
+    
+    def _generate_interactive_map(self, 
+                                soil: SoilQuality, 
+                                soil_data: Dict[str, Any], 
+                                ai_analysis: Dict[str, Any]) -> str:
+        """
+        Génère une carte interactive pour l'analyse de la qualité des sols.
+        
+        Args:
+            soil (SoilQuality): Sol analysé
+            soil_data (dict): Données pédologiques
+            ai_analysis (dict): Analyse IA
+            
+        Returns:
+            str: Chemin vers la carte générée
+        """
+        # Créer une carte Folium centrée sur l'emplacement
+        m = folium.Map(
+            location=[soil.latitude, soil.longitude],
+            zoom_start=15,
+            tiles="OpenStreetMap"
+        )
+        
+        # Ajouter les zones de qualité des sols
+        for zone in soil_data.get("zones", []):
+            folium.Polygon(
+                locations=zone["polygon"],
+                color=zone["color"],
+                fill=True,
+                fill_color=zone["color"],
+                fill_opacity=0.5,
+                popup=f"{zone['name']} - Score: {zone['score']}/10 - {zone['proportion']}%"
+            ).add_to(m)
+        
+        # Ajouter les échantillons de sol
+        for sample in soil_data.get("samples", []):
+            folium.CircleMarker(
+                location=sample["position"],
+                radius=5,
+                color="#000",
+                fill=True,
+                fill_color="#fff",
+                fill_opacity=0.8,
+                popup=f"pH: {sample['ph']}<br>Texture: {sample['texture']}<br>Matière organique: {sample['organic_matter']}%"
+            ).add_to(m)
+        
+        # Ajouter une légende
+        legend_html = """
+        <div style="position: fixed; bottom: 50px; right: 50px; z-index: 1000; background-color: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2);">
+            <h4>Légende</h4>
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <div style="background-color: #1a9641; width: 20px; height: 20px; margin-right: 8px;"></div>
+                <div>Zone optimale</div>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <div style="background-color: #a6d96a; width: 20px; height: 20px; margin-right: 8px;"></div>
+                <div>Zone favorable</div>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <div style="background-color: #ffffbf; width: 20px; height: 20px; margin-right: 8px;"></div>
+                <div>Zone moyenne</div>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <div style="background-color: #d7191c; width: 20px; height: 20px; margin-right: 8px;"></div>
+                <div>Zone peu adaptée</div>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <div style="background-color: #000; width: 20px; height: 20px; border-radius: 50%; margin-right: 8px;"></div>
+                <div>Échantillon de sol</div>
+            </div>
+        </div>
+        """
+        m.get_root().html.add_child(folium.Element(legend_html))
+        
+        # Enregistrer la carte
+        map_path = os.path.join(self.cache_dir, f"soil_map_{soil.soil_id}.html")
+        m.save(map_path)
+        
+        # Retourner le chemin relatif
+        return f"/static/visualizations/soil_map_{soil.soil_id}.html"
+    
+    def _generate_soil_quality_map(self, 
+                                 soil: SoilQuality, 
+                                 soil_data: Dict[str, Any], 
+                                 ai_analysis: Dict[str, Any]) -> str:
+        """
+        Génère une carte de qualité des sols.
+        
+        Args:
+            soil (SoilQuality): Sol analysé
+            soil_data (dict): Données pédologiques
+            ai_analysis (dict): Analyse IA
+            
+        Returns:
+            str: Chemin vers la carte générée
+        """
+        # Créer une figure
+        fig, ax = plt.subplots(figsize=(10, 8))
+        
+        # Dessiner un fond blanc
+        ax.set_facecolor('white')
+        
+        # Dessiner une grille légère
+        ax.grid(True, linestyle='--', alpha=0.3)
+        
+        # Dessiner les zones de qualité des sols
+        for zone in soil_data.get("zones", []):
+            polygon = np.array(zone["polygon"])
+            ax.fill(polygon[:, 1], polygon[:, 0], color=zone["color"], alpha=0.5, 
+                   label=f"{zone['name']} ({zone['proportion']}%)")
+            ax.plot(polygon[:, 1], polygon[:, 0], color='black', linewidth=1)
+        
+        # Dessiner les échantillons de sol
+        for sample in soil_data.get("samples", []):
+            ax.plot(sample["position"][1], sample["position"][0], 'ko', markersize=8, 
+                   markerfacecolor='white', label='_nolegend_')
+        
+        # Ajouter une légende
+        ax.legend(loc='upper right')
+        
+        # Ajouter un titre
+        plt.title(f"Analyse de la qualité des sols pour {soil.crop_type} - {soil.location_name}")
+        
+        # Ajouter des étiquettes d'axes
+        plt.xlabel("Longitude")
+        plt.ylabel("Latitude")
+        
+        # Enregistrer la figure
+        soil_map_path = os.path.join(self.cache_dir, f"soil_quality_map_{soil.soil_id}.png")
+        plt.savefig(soil_map_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        
+        # Retourner le chemin relatif
+        return f"/static/visualizations/soil_quality_map_{soil.soil_id}.png"

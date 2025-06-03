@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte d'analyse d'emplacement commercial</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        .legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+        .legend h4 {
+            margin: 0 0 10px;
+            font-size: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 50%;
+        }
+        .legend-label {
+            font-size: 12px;
+        }
+        .marker-cluster {
+            background-color: rgba(241, 128, 23, 0.6);
+            border-radius: 50%;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            border: 1px solid #f18017;
+        }
+        .marker-cluster div {
+            width: 30px;
+            height: 30px;
+            margin-left: 5px;
+            margin-top: 5px;
+            text-align: center;
+            border-radius: 15px;
+            font-size: 12px;
+            background-color: rgba(241, 128, 23, 0.8);
+        }
+        .marker-cluster span {
+            line-height: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        // Initialisation de la carte
+        const map = L.map('map').setView([48.8566, 2.3522], 14); // Paris
+
+        // Ajout de la couche OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Données simulées pour l'analyse d'emplacement commercial
+        const commercialData = {
+            location: "Paris, France",
+            center: [48.8566, 2.3522],
+            radius: 500,
+            scores: {
+                global: 7.1,
+                poi: 8.5,
+                road: 7.2,
+                competition: 5.0
+            },
+            hotspots: [
+                { position: [48.8580, 2.3510], score: 8.7, name: "Emplacement optimal" },
+                { position: [48.8550, 2.3540], score: 7.9, name: "Emplacement alternatif" },
+                { position: [48.8530, 2.3490], score: 7.2, name: "Emplacement de niche" }
+            ],
+            competitors: [
+                { position: [48.8570, 2.3550], name: "Pharmacie A" },
+                { position: [48.8540, 2.3510], name: "Pharmacie B" },
+                { position: [48.8590, 2.3480], name: "Pharmacie C" },
+                { position: [48.8520, 2.3560], name: "Pharmacie D" },
+                { position: [48.8600, 2.3530], name: "Pharmacie E" }
+            ],
+            pois: [
+                { position: [48.8575, 2.3525], type: "hospital", name: "Hôpital" },
+                { position: [48.8545, 2.3505], type: "school", name: "École" },
+                { position: [48.8585, 2.3495], type: "supermarket", name: "Supermarché" },
+                { position: [48.8555, 2.3545], type: "bus_stop", name: "Arrêt de bus" }
+            ]
+        };
+
+        // Ajouter un cercle pour le rayon d'analyse
+        L.circle(commercialData.center, {
+            color: '#0d6efd',
+            fillColor: '#0d6efd',
+            fillOpacity: 0.1,
+            radius: commercialData.radius
+        }).addTo(map);
+
+        // Ajouter les hotspots (emplacements recommandés)
+        commercialData.hotspots.forEach(hotspot => {
+            const color = hotspot.score > 8 ? '#1a9641' : 
+                          hotspot.score > 7 ? '#a6d96a' : 
+                          hotspot.score > 6 ? '#ffffbf' : '#d7191c';
+            
+            L.circleMarker(hotspot.position, {
+                radius: 15,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.8,
+                weight: 2
+            }).bindPopup(`
+                <strong>${hotspot.name}</strong><br>
+                Score: ${hotspot.score}/10
+            `).addTo(map);
+        });
+
+        // Ajouter les concurrents
+        const pharmacyIcon = L.divIcon({
+            html: '<i class="fas fa-prescription-bottle-alt" style="color:#dc3545;font-size:24px;"></i>',
+            className: 'pharmacy-icon',
+            iconSize: [24, 24]
+        });
+
+        commercialData.competitors.forEach(competitor => {
+            L.marker(competitor.position, {
+                icon: L.divIcon({
+                    html: '<div style="background-color:#dc3545;width:12px;height:12px;border-radius:50%;"></div>',
+                    className: '',
+                    iconSize: [12, 12]
+                })
+            }).bindPopup(`
+                <strong>${competitor.name}</strong><br>
+                Concurrent
+            `).addTo(map);
+        });
+
+        // Ajouter les points d'intérêt
+        commercialData.pois.forEach(poi => {
+            let color;
+            switch(poi.type) {
+                case 'hospital': color = '#0dcaf0'; break;
+                case 'school': color = '#ffc107'; break;
+                case 'supermarket': color = '#198754'; break;
+                default: color = '#6c757d';
+            }
+            
+            L.marker(poi.position, {
+                icon: L.divIcon({
+                    html: `<div style="background-color:${color};width:10px;height:10px;border-radius:50%;"></div>`,
+                    className: '',
+                    iconSize: [10, 10]
+                })
+            }).bindPopup(`
+                <strong>${poi.name}</strong><br>
+                Point d'intérêt
+            `).addTo(map);
+        });
+
+        // Ajouter une légende
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <h4>Légende</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#1a9641;"></div>
+                    <div class="legend-label">Emplacement optimal (>8/10)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#a6d96a;"></div>
+                    <div class="legend-label">Emplacement favorable (7-8/10)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#ffffbf;"></div>
+                    <div class="legend-label">Emplacement moyen (6-7/10)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#d7191c;"></div>
+                    <div class="legend-label">Emplacement peu adapté (<6/10)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#dc3545;"></div>
+                    <div class="legend-label">Concurrent</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#0dcaf0;"></div>
+                    <div class="legend-label">Hôpital</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#ffc107;"></div>
+                    <div class="legend-label">École</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#198754;"></div>
+                    <div class="legend-label">Supermarché</div>
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+    </script>
+</body>
+</html>

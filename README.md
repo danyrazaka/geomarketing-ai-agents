@@ -46,16 +46,14 @@ cd geomarketing-ai-agents
 
 # Créer et activer un environnement virtuel
 # Sur Linux/macOS
-python -m venv geo
-source geo/bin/activate
+python -m venv venv
+source venv/bin/activate
 
 # Sur Windows
-conda create -n geo_env python=3.9
-conda activate geo_env
-conda install -c conda-forge geopandas osmnx folium
+python -m venv venv
+venv\Scripts\activate
 
 # Installer les dépendances
-cd C:\Users\daniel.razakamanana\Downloads\geomarketing-ai-agents
 pip install -r requirements.txt
 
 # Lancer l'application
@@ -113,17 +111,31 @@ L'application sera accessible à l'adresse [http://localhost:5000](http://localh
 geomarketing-ai-agents/
 ├── src/
 │   ├── models/       # Modèles de données
+│   │   ├── commercial_location.py
+│   │   ├── soil_quality.py
+│   │   ├── analysis_result.py
+│   │   └── user.py
 │   ├── routes/       # Routes API
 │   │   ├── commercial_routes.py
-│   │   └── soil_routes.py
+│   │   ├── soil_routes.py
+│   │   └── user.py
 │   ├── services/     # Services métier
 │   │   ├── commercial_location_service.py
 │   │   └── soil_quality_service.py
 │   ├── static/       # Fichiers statiques
 │   │   ├── css/
+│   │   │   └── style.css
 │   │   ├── js/
+│   │   │   ├── main.js
+│   │   │   ├── commercial.js
+│   │   │   ├── soil.js
+│   │   │   └── generate_images.js
 │   │   ├── img/
 │   │   └── visualizations/
+│   │       ├── location_map.html
+│   │       ├── soil_map.html
+│   │       ├── location_heatmap.png
+│   │       └── soil_quality_map.png
 │   ├── templates/    # Templates HTML
 │   │   ├── index.html
 │   │   ├── commercial.html
@@ -147,7 +159,7 @@ Le projet expose des API REST pour l'intégration avec d'autres applications :
 ### Analyse d'emplacement commercial
 
 ```http
-POST /api/commercial/analyze
+POST /commercial/api/analyze
 Content-Type: application/json
 
 {
@@ -158,7 +170,8 @@ Content-Type: application/json
         "importance_factors": {
             "population": 0.4,
             "competition": 0.3,
-            "accessibility": 0.3
+            "accessibility": 0.2,
+            "visibility": 0.1
         }
     }
 }
@@ -167,7 +180,7 @@ Content-Type: application/json
 ### Analyse de la qualité des sols
 
 ```http
-POST /api/soil/analyze
+POST /soil/api/analyze
 Content-Type: application/json
 
 {
@@ -205,6 +218,7 @@ Le client DeepSeek R1 est conçu pour être facilement remplaçable. Modifiez `s
 
 - Dans la version actuelle, les résultats sont basés sur des données simulées pour démonstration
 - Pour une utilisation en production, il est recommandé d'intégrer des sources de données réelles et de calibrer les modèles d'analyse
+- Pour utiliser votre propre clé API DeepSeek R1, définissez la variable d'environnement `DEEPSEEK_API_KEY` ou modifiez directement le fichier `src/utils/deepseek_client.py`
 
 ## 📄 Licence
 

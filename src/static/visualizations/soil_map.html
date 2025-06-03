@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte d'analyse de la qualité des sols</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        .legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+        .legend h4 {
+            margin: 0 0 10px;
+            font-size: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+        }
+        .legend-label {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        // Initialisation de la carte
+        const map = L.map('map').setView([43.6047, 1.4442], 14); // Toulouse
+
+        // Ajout de la couche OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Données simulées pour l'analyse de la qualité des sols
+        const soilData = {
+            location: "Toulouse, France",
+            center: [43.6047, 1.4442],
+            crop_type: "stevia",
+            scores: {
+                global: 8.3,
+                ph: 8.5,
+                drainage: 9.0,
+                texture: 8.0,
+                organic: 7.6
+            },
+            zones: [
+                {
+                    name: "Zone optimale",
+                    proportion: 40,
+                    score: 8.7,
+                    color: "#1a9641",
+                    polygon: [
+                        [43.6080, 1.4420],
+                        [43.6070, 1.4480],
+                        [43.6030, 1.4470],
+                        [43.6040, 1.4410]
+                    ]
+                },
+                {
+                    name: "Zone intermédiaire",
+                    proportion: 35,
+                    score: 6.5,
+                    color: "#a6d96a",
+                    polygon: [
+                        [43.6040, 1.4410],
+                        [43.6030, 1.4470],
+                        [43.6000, 1.4460],
+                        [43.6010, 1.4400]
+                    ]
+                },
+                {
+                    name: "Zone peu adaptée",
+                    proportion: 25,
+                    score: 4.2,
+                    color: "#d7191c",
+                    polygon: [
+                        [43.6010, 1.4400],
+                        [43.6000, 1.4460],
+                        [43.5970, 1.4450],
+                        [43.5980, 1.4390]
+                    ]
+                }
+            ],
+            soil_samples: [
+                { position: [43.6060, 1.4440], ph: 6.5, texture: "limoneux-sableux", organic_matter: 2.8 },
+                { position: [43.6020, 1.4430], ph: 6.0, texture: "argileux", organic_matter: 2.2 },
+                { position: [43.5990, 1.4420], ph: 5.5, texture: "lourd et compacté", organic_matter: 1.8 }
+            ]
+        };
+
+        // Ajouter les zones de qualité des sols
+        soilData.zones.forEach(zone => {
+            L.polygon(zone.polygon, {
+                color: zone.color,
+                fillColor: zone.color,
+                fillOpacity: 0.5,
+                weight: 2
+            }).bindPopup(`
+                <strong>${zone.name}</strong><br>
+                Score: ${zone.score}/10<br>
+                Proportion: ${zone.proportion}%
+            `).addTo(map);
+        });
+
+        // Ajouter les échantillons de sol
+        soilData.soil_samples.forEach(sample => {
+            L.circleMarker(sample.position, {
+                radius: 8,
+                color: '#000',
+                fillColor: '#fff',
+                fillOpacity: 0.8,
+                weight: 2
+            }).bindPopup(`
+                <strong>Échantillon de sol</strong><br>
+                pH: ${sample.ph}<br>
+                Texture: ${sample.texture}<br>
+                Matière organique: ${sample.organic_matter}%
+            `).addTo(map);
+        });
+
+        // Ajouter une légende
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <h4>Légende</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#1a9641;"></div>
+                    <div class="legend-label">Zone optimale (score > 8)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#a6d96a;"></div>
+                    <div class="legend-label">Zone favorable (score 6-8)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#ffffbf;"></div>
+                    <div class="legend-label">Zone moyenne (score 4-6)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#d7191c;"></div>
+                    <div class="legend-label">Zone peu adaptée (score < 4)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color:#000; border-radius:50%;"></div>
+                    <div class="legend-label">Échantillon de sol</div>
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+    </script>
+</body>
+</html>

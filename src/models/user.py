@@ -1,18 +1,33 @@
-from flask_sqlalchemy import SQLAlchemy
+"""
+Module utilisateur simplifié sans dépendance à SQLAlchemy.
+"""
 
-db = SQLAlchemy()
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-
-    def __repr__(self):
-        return f'<User {self.username}>'
-
+class User:
+    """
+    Modèle utilisateur simplifié pour la démonstration.
+    """
+    def __init__(self, user_id=None, username="", email=""):
+        """
+        Initialise un nouvel utilisateur.
+        
+        Args:
+            user_id (str): Identifiant unique de l'utilisateur
+            username (str): Nom d'utilisateur
+            email (str): Adresse email
+        """
+        self.user_id = user_id
+        self.username = username
+        self.email = email
+        
     def to_dict(self):
+        """
+        Convertit l'objet en dictionnaire.
+        
+        Returns:
+            dict: Représentation dictionnaire de l'objet
+        """
         return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email
+            "user_id": self.user_id,
+            "username": self.username,
+            "email": self.email
         }

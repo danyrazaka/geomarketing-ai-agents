@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documentation - GeoMarketing AI</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <title>GeoMarketing AI Agents - Documentation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="fas fa-map-marked-alt me-2"></i>
-                GeoMarketing AI
+                <i class="bi bi-geo-alt-fill me-2"></i>
+                GeoMarketing AI Agents
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -22,149 +21,194 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> Accueil</a>
+                        <a class="nav-link" href="/"><i class="bi bi-house-door"></i> Accueil</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/commercial"><i class="fas fa-store me-1"></i> Emplacement Commercial</a>
+                        <a class="nav-link" href="/commercial"><i class="bi bi-shop"></i> Emplacement Commercial</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/soil"><i class="fas fa-seedling me-1"></i> Qualité des Sols</a>
+                        <a class="nav-link" href="/soil"><i class="bi bi-tree"></i> Qualité des Sols</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/docs"><i class="fas fa-book me-1"></i> Documentation</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="https://github.com/username/geomarketing-ai-agents" target="_blank">
-                            <i class="fab fa-github me-1"></i> GitHub
-                        </a>
+                        <a class="nav-link active" href="/docs"><i class="bi bi-book"></i> Documentation</a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <header class="py-4 bg-light">
-        <div class="container">
-            <h1><i class="fas fa-book text-primary me-2"></i> Documentation</h1>
-            <p class="lead">Guide d'utilisation et documentation technique du projet GeoMarketing AI</p>
-        </div>
-    </header>
-
-    <section class="py-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-3 mb-4">
-                    <div class="list-group sticky-top" style="top: 2rem;">
-                        <a href="#introduction" class="list-group-item list-group-item-action">Introduction</a>
-                        <a href="#installation" class="list-group-item list-group-item-action">Installation</a>
-                        <a href="#utilisation" class="list-group-item list-group-item-action">Utilisation</a>
-                        <a href="#api" class="list-group-item list-group-item-action">API</a>
-                        <a href="#architecture" class="list-group-item list-group-item-action">Architecture</a>
-                        <a href="#technologies" class="list-group-item list-group-item-action">Technologies</a>
-                        <a href="#extension" class="list-group-item list-group-item-action">Extension</a>
-                        <a href="#faq" class="list-group-item list-group-item-action">FAQ</a>
-                    </div>
+    <div class="container my-5">
+        <div class="row">
+            <div class="col-lg-3">
+                <div class="list-group sticky-top pt-3">
+                    <a href="#introduction" class="list-group-item list-group-item-action">Introduction</a>
+                    <a href="#installation" class="list-group-item list-group-item-action">Installation</a>
+                    <a href="#commercial" class="list-group-item list-group-item-action">Analyse d'Emplacement Commercial</a>
+                    <a href="#soil" class="list-group-item list-group-item-action">Analyse de la Qualité des Sols</a>
+                    <a href="#api" class="list-group-item list-group-item-action">API REST</a>
+                    <a href="#extension" class="list-group-item list-group-item-action">Extension du Projet</a>
+                    <a href="#faq" class="list-group-item list-group-item-action">FAQ</a>
                 </div>
-                
-                <div class="col-lg-9">
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-body">
-                            <section id="introduction">
-                                <h2 class="border-bottom pb-2">Introduction</h2>
-                                <p>
-                                    GeoMarketing AI est un projet open source qui combine l'intelligence artificielle (DeepSeek R1) 
-                                    avec des outils d'analyse géospatiale pour fournir des recommandations précises dans deux domaines :
-                                </p>
-                                <ul>
-                                    <li><strong>Optimisation d'emplacement commercial</strong> : Trouvez le meilleur emplacement pour votre commerce en analysant les données démographiques, les flux de circulation, la concurrence et d'autres facteurs clés.</li>
-                                    <li><strong>Analyse de la qualité des sols</strong> : Évaluez la compatibilité de vos terrains avec différentes cultures en analysant les données pédologiques, climatiques et hydrologiques.</li>
-                                </ul>
-                                <p>
-                                    Ce projet s'appuie sur des technologies open source comme DeepSeek R1, QGIS, et diverses bibliothèques 
-                                    Python pour l'analyse géospatiale. Il intègre également des données provenant de sources ouvertes 
-                                    comme OpenStreetMap, l'INSEE, l'INRAE et d'autres.
-                                </p>
-                            </section>
-                            
-                            <section id="installation" class="mt-5">
-                                <h2 class="border-bottom pb-2">Installation</h2>
-                                <p>Pour installer et exécuter le projet localement, suivez ces étapes :</p>
-                                
-                                <h4>Prérequis</h4>
-                                <ul>
-                                    <li>Python 3.8 ou supérieur</li>
-                                    <li>pip (gestionnaire de paquets Python)</li>
-                                    <li>Git</li>
-                                </ul>
-                                
-                                <h4>Étapes d'installation</h4>
-                                <ol>
-                                    <li>
-                                        <p>Clonez le dépôt GitHub :</p>
-                                        <pre><code class="language-bash">git clone https://github.com/username/geomarketing-ai-agents.git
-cd geomarketing-ai-agents</code></pre>
-                                    </li>
-                                    <li>
-                                        <p>Créez et activez un environnement virtuel :</p>
-                                        <pre><code class="language-bash"># Sur Linux/macOS
+            </div>
+            <div class="col-lg-9">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h1 id="introduction" class="border-bottom pb-3 mb-4">Documentation GeoMarketing AI Agents</h1>
+                        
+                        <p class="lead">
+                            Bienvenue dans la documentation de GeoMarketing AI Agents, une plateforme open source qui combine l'intelligence artificielle (DeepSeek R1) avec des outils d'analyse géospatiale pour optimiser vos décisions géographiques.
+                        </p>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            Cette documentation vous guidera à travers l'installation, l'utilisation et l'extension du projet.
+                        </div>
+
+                        <h2 id="installation" class="mt-5 mb-4">Installation</h2>
+                        
+                        <h4>Prérequis</h4>
+                        <ul>
+                            <li>Python 3.8 ou supérieur</li>
+                            <li>pip (gestionnaire de paquets Python)</li>
+                            <li>Git</li>
+                        </ul>
+
+                        <h4>Installation locale</h4>
+                        <div class="bg-light p-3 rounded">
+                            <pre><code># Cloner le dépôt
+git clone https://github.com/username/geomarketing-ai-agents.git
+cd geomarketing-ai-agents
+
+# Créer et activer un environnement virtuel
+# Sur Linux/macOS
 python -m venv venv
 source venv/bin/activate
 
 # Sur Windows
 python -m venv venv
-venv\Scripts\activate</code></pre>
-                                    </li>
-                                    <li>
-                                        <p>Installez les dépendances :</p>
-                                        <pre><code class="language-bash">pip install -r requirements.txt</code></pre>
-                                    </li>
-                                    <li>
-                                        <p>Lancez l'application :</p>
-                                        <pre><code class="language-bash">python src/main.py</code></pre>
-                                    </li>
-                                    <li>
-                                        <p>Accédez à l'application dans votre navigateur à l'adresse <a href="http://localhost:5000" target="_blank">http://localhost:5000</a></p>
-                                    </li>
-                                </ol>
-                            </section>
-                            
-                            <section id="utilisation" class="mt-5">
-                                <h2 class="border-bottom pb-2">Utilisation</h2>
-                                
-                                <h4>Analyse d'emplacement commercial</h4>
-                                <ol>
-                                    <li>Accédez à la page "Emplacement Commercial" depuis le menu principal.</li>
-                                    <li>Entrez la localisation que vous souhaitez analyser (ville, quartier, adresse).</li>
-                                    <li>Sélectionnez le type de commerce (par défaut : pharmacie).</li>
-                                    <li>Ajustez les paramètres selon vos besoins (rayon d'analyse, facteurs d'importance).</li>
-                                    <li>Cliquez sur "Analyser" pour lancer l'analyse.</li>
-                                    <li>Consultez les résultats sous forme de scores, cartes et recommandations.</li>
-                                </ol>
-                                
-                                <div class="alert alert-info">
-                                    <i class="fas fa-lightbulb me-2"></i> <strong>Astuce :</strong> Utilisez le bouton "Charger un exemple" pour tester rapidement l'application avec des données prédéfinies.
+venv\Scripts\activate
+
+# Installer les dépendances
+pip install -r requirements.txt
+
+# Lancer l'application
+python src/main.py</code></pre>
+                        </div>
+
+                        <p class="mt-3">
+                            L'application sera accessible à l'adresse <a href="http://localhost:5000" target="_blank">http://localhost:5000</a>.
+                        </p>
+
+                        <h2 id="commercial" class="mt-5 mb-4">Analyse d'Emplacement Commercial</h2>
+                        
+                        <p>
+                            L'agent d'optimisation d'emplacement commercial vous aide à trouver le meilleur emplacement pour votre commerce en analysant diverses données géographiques et démographiques.
+                        </p>
+
+                        <h4>Comment utiliser l'analyse d'emplacement commercial</h4>
+                        
+                        <ol>
+                            <li>Accédez à la page "Emplacement Commercial" depuis le menu principal</li>
+                            <li>Entrez la localisation que vous souhaitez analyser (ville, quartier, adresse)</li>
+                            <li>Sélectionnez le type de commerce (pharmacie, boulangerie, etc.)</li>
+                            <li>Ajustez les paramètres selon vos besoins (rayon d'analyse, facteurs d'importance)</li>
+                            <li>Cliquez sur "Analyser" pour lancer l'analyse</li>
+                            <li>Consultez les résultats sous forme de scores, cartes et recommandations</li>
+                        </ol>
+
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">Facteurs d'importance</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul>
+                                            <li><strong>Population</strong> : Densité et caractéristiques démographiques</li>
+                                            <li><strong>Concurrence</strong> : Présence de commerces similaires</li>
+                                            <li><strong>Accessibilité</strong> : Facilité d'accès (routes, transports)</li>
+                                            <li><strong>Visibilité</strong> : Exposition et visibilité du commerce</li>
+                                        </ul>
+                                    </div>
                                 </div>
-                                
-                                <h4>Analyse de la qualité des sols</h4>
-                                <ol>
-                                    <li>Accédez à la page "Qualité des Sols" depuis le menu principal.</li>
-                                    <li>Entrez la localisation de votre parcelle (ville, région, coordonnées).</li>
-                                    <li>Sélectionnez le type de culture que vous souhaitez évaluer (par défaut : stevia).</li>
-                                    <li>Ajustez les paramètres selon vos besoins (profondeur d'analyse, facteurs d'importance).</li>
-                                    <li>Cliquez sur "Analyser" pour lancer l'analyse.</li>
-                                    <li>Consultez les résultats sous forme de scores, cartes de zones et recommandations agronomiques.</li>
-                                </ol>
-                            </section>
-                            
-                            <section id="api" class="mt-5">
-                                <h2 class="border-bottom pb-2">API</h2>
-                                <p>
-                                    Le projet expose des API REST pour l'intégration avec d'autres applications. 
-                                    Voici les principaux endpoints disponibles :
-                                </p>
-                                
-                                <h4>Analyse d'emplacement commercial</h4>
-                                <pre><code class="language-http">POST /api/commercial/analyze
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">Résultats fournis</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul>
+                                            <li><strong>Scores d'attractivité</strong> : Global et par facteur</li>
+                                            <li><strong>Carte interactive</strong> : Visualisation des emplacements optimaux</li>
+                                            <li><strong>Carte de chaleur</strong> : Zones d'attractivité</li>
+                                            <li><strong>Recommandations</strong> : Conseils stratégiques</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 id="soil" class="mt-5 mb-4">Analyse de la Qualité des Sols</h2>
+                        
+                        <p>
+                            L'agent d'analyse de la qualité des sols vous aide à évaluer la compatibilité de vos terrains avec différentes cultures en analysant les propriétés pédologiques.
+                        </p>
+
+                        <h4>Comment utiliser l'analyse de la qualité des sols</h4>
+                        
+                        <ol>
+                            <li>Accédez à la page "Qualité des Sols" depuis le menu principal</li>
+                            <li>Entrez la localisation de votre parcelle (ville, région, coordonnées)</li>
+                            <li>Sélectionnez le type de culture que vous souhaitez évaluer (stevia, blé, etc.)</li>
+                            <li>Ajustez les paramètres selon vos besoins (profondeur d'analyse, facteurs d'importance)</li>
+                            <li>Cliquez sur "Analyser" pour lancer l'analyse</li>
+                            <li>Consultez les résultats sous forme de scores, cartes de zones et recommandations agronomiques</li>
+                        </ol>
+
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="mb-0">Facteurs d'importance</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul>
+                                            <li><strong>pH</strong> : Acidité/alcalinité du sol</li>
+                                            <li><strong>Drainage</strong> : Capacité d'évacuation de l'eau</li>
+                                            <li><strong>Texture</strong> : Composition granulométrique</li>
+                                            <li><strong>Matière organique</strong> : Richesse en nutriments</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="mb-0">Résultats fournis</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul>
+                                            <li><strong>Scores de compatibilité</strong> : Global et par facteur</li>
+                                            <li><strong>Carte interactive</strong> : Visualisation des zones optimales</li>
+                                            <li><strong>Carte de qualité des sols</strong> : Zones de compatibilité</li>
+                                            <li><strong>Recommandations agronomiques</strong> : Conseils par zone</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 id="api" class="mt-5 mb-4">API REST</h2>
+                        
+                        <p>
+                            Le projet expose des API REST pour l'intégration avec d'autres applications.
+                        </p>
+
+                        <h4>Analyse d'emplacement commercial</h4>
+                        
+                        <div class="bg-light p-3 rounded">
+                            <pre><code>POST /commercial/api/analyze
 Content-Type: application/json
 
 {
@@ -175,13 +219,17 @@ Content-Type: application/json
         "importance_factors": {
             "population": 0.4,
             "competition": 0.3,
-            "accessibility": 0.3
+            "accessibility": 0.2,
+            "visibility": 0.1
         }
     }
 }</code></pre>
-                                
-                                <h4>Analyse de la qualité des sols</h4>
-                                <pre><code class="language-http">POST /api/soil/analyze
+                        </div>
+
+                        <h4 class="mt-4">Analyse de la qualité des sols</h4>
+                        
+                        <div class="bg-light p-3 rounded">
+                            <pre><code>POST /soil/api/analyze
 Content-Type: application/json
 
 {
@@ -197,268 +245,111 @@ Content-Type: application/json
         }
     }
 }</code></pre>
-                                
-                                <h4>Exemples d'utilisation</h4>
-                                <p>Pour obtenir des exemples de paramètres :</p>
-                                <pre><code class="language-http">GET /api/commercial/examples
-GET /api/soil/examples</code></pre>
-                                
-                                <div class="alert alert-warning">
-                                    <i class="fas fa-exclamation-triangle me-2"></i> <strong>Note :</strong> Dans la version actuelle, les résultats sont basés sur des données simulées pour démonstration.
-                                </div>
-                            </section>
-                            
-                            <section id="architecture" class="mt-5">
-                                <h2 class="border-bottom pb-2">Architecture</h2>
-                                <p>
-                                    Le projet suit une architecture modulaire basée sur Flask, avec une séparation claire 
-                                    entre les différentes couches :
-                                </p>
-                                
-                                <div class="row mt-3">
-                                    <div class="col-md-6">
-                                        <h4>Structure du projet</h4>
-                                        <pre><code class="language-text">geomarketing-ai-agents/
-├── src/
-│   ├── models/       # Modèles de données
-│   ├── routes/       # Routes API
-│   ├── services/     # Services métier
-│   ├── static/       # Fichiers statiques
-│   ├── templates/    # Templates HTML
-│   ├── utils/        # Utilitaires
-│   └── main.py       # Point d'entrée
-├── venv/             # Environnement virtuel
-└── requirements.txt  # Dépendances</code></pre>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h4>Couches d'architecture</h4>
-                                        <ul>
-                                            <li><strong>Présentation</strong> : Templates HTML, JavaScript, CSS</li>
-                                            <li><strong>API</strong> : Routes Flask, validation des entrées</li>
-                                            <li><strong>Services</strong> : Logique métier, intégration IA</li>
-                                            <li><strong>Données</strong> : Accès aux sources de données géospatiales</li>
-                                            <li><strong>IA</strong> : Intégration avec DeepSeek R1</li>
-                                        </ul>
+                        </div>
+
+                        <h2 id="extension" class="mt-5 mb-4">Extension du Projet</h2>
+                        
+                        <p>
+                            Le projet est conçu pour être facilement extensible.
+                        </p>
+
+                        <h4>Intégration de nouvelles sources de données</h4>
+                        
+                        <p>
+                            Pour ajouter une nouvelle source de données, créez un nouveau module dans <code>src/utils</code> qui implémente les méthodes d'accès à cette source, puis intégrez-le dans les services existants.
+                        </p>
+
+                        <h4>Ajout de nouveaux types d'analyses</h4>
+                        
+                        <p>
+                            Pour ajouter un nouveau type d'analyse, créez un nouveau service dans <code>src/services</code>, une nouvelle route dans <code>src/routes</code>, et les templates correspondants dans <code>src/templates</code>.
+                        </p>
+
+                        <h4>Intégration avec d'autres modèles d'IA</h4>
+                        
+                        <p>
+                            Le client DeepSeek R1 est conçu pour être facilement remplaçable. Modifiez <code>src/utils/deepseek_client.py</code> pour intégrer un autre modèle d'IA, en conservant la même interface.
+                        </p>
+
+                        <h2 id="faq" class="mt-5 mb-4">FAQ</h2>
+                        
+                        <div class="accordion" id="faqAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                        Les résultats sont-ils basés sur des données réelles ?
+                                    </button>
+                                </h2>
+                                <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Dans la version actuelle, les résultats sont basés sur des données simulées pour démonstration. Pour une utilisation en production, il est recommandé d'intégrer des sources de données réelles et de calibrer les modèles d'analyse.
                                     </div>
                                 </div>
-                                
-                                <h4>Flux de données</h4>
-                                <p>
-                                    1. L'utilisateur soumet une requête via l'interface web ou l'API<br>
-                                    2. Les routes Flask valident les paramètres et appellent les services appropriés<br>
-                                    3. Les services récupèrent et analysent les données géospatiales<br>
-                                    4. DeepSeek R1 génère des recommandations basées sur les analyses<br>
-                                    5. Les résultats sont formatés et renvoyés à l'utilisateur
-                                </p>
-                            </section>
-                            
-                            <section id="technologies" class="mt-5">
-                                <h2 class="border-bottom pb-2">Technologies</h2>
-                                
-                                <div class="row mt-3">
-                                    <div class="col-md-6">
-                                        <h4>Backend</h4>
-                                        <ul>
-                                            <li><strong>Flask</strong> : Framework web Python</li>
-                                            <li><strong>GeoPandas</strong> : Manipulation de données géospatiales</li>
-                                            <li><strong>OSMnx</strong> : Accès aux données OpenStreetMap</li>
-                                            <li><strong>Folium</strong> : Génération de cartes interactives</li>
-                                            <li><strong>Matplotlib</strong> : Visualisation de données</li>
-                                            <li><strong>DeepSeek R1</strong> : Modèle d'IA pour le raisonnement</li>
-                                        </ul>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h4>Frontend</h4>
-                                        <ul>
-                                            <li><strong>Bootstrap</strong> : Framework CSS</li>
-                                            <li><strong>JavaScript</strong> : Interactivité côté client</li>
-                                            <li><strong>Leaflet</strong> : Bibliothèque de cartographie</li>
-                                            <li><strong>Font Awesome</strong> : Icônes</li>
-                                            <li><strong>Highlight.js</strong> : Coloration syntaxique</li>
-                                        </ul>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                        Comment puis-je configurer ma propre clé API DeepSeek R1 ?
+                                    </button>
+                                </h2>
+                                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Vous pouvez définir votre clé API DeepSeek R1 en tant que variable d'environnement <code>DEEPSEEK_API_KEY</code>, ou la fournir directement lors de l'initialisation du client dans <code>src/utils/deepseek_client.py</code>.
                                     </div>
                                 </div>
-                                
-                                <h4>Sources de données</h4>
-                                <ul>
-                                    <li><strong>OpenStreetMap</strong> : Données géographiques (réseau routier, bâtiments, points d'intérêt)</li>
-                                    <li><strong>INSEE</strong> : Données démographiques et socio-économiques</li>
-                                    <li><strong>INRAE</strong> : Référentiels Régionaux Pédologiques</li>
-                                    <li><strong>FAO</strong> : Harmonized World Soil Database</li>
-                                </ul>
-                            </section>
-                            
-                            <section id="extension" class="mt-5">
-                                <h2 class="border-bottom pb-2">Extension du projet</h2>
-                                <p>
-                                    Le projet est conçu pour être facilement extensible. Voici quelques pistes pour l'enrichir :
-                                </p>
-                                
-                                <h4>Intégration de nouvelles sources de données</h4>
-                                <p>
-                                    Pour ajouter une nouvelle source de données, créez un nouveau module dans <code>src/utils</code> 
-                                    qui implémente les méthodes d'accès à cette source, puis intégrez-le dans les services existants.
-                                </p>
-                                
-                                <h4>Ajout de nouveaux types d'analyses</h4>
-                                <p>
-                                    Pour ajouter un nouveau type d'analyse, créez un nouveau service dans <code>src/services</code>, 
-                                    une nouvelle route dans <code>src/routes</code>, et les templates correspondants dans <code>src/templates</code>.
-                                </p>
-                                
-                                <h4>Intégration avec d'autres modèles d'IA</h4>
-                                <p>
-                                    Le client DeepSeek R1 est conçu pour être facilement remplaçable. Modifiez <code>src/utils/deepseek_client.py</code> 
-                                    pour intégrer un autre modèle d'IA, en conservant la même interface.
-                                </p>
-                                
-                                <div class="alert alert-success">
-                                    <i class="fas fa-code-branch me-2"></i> <strong>Contribution :</strong> Les contributions au projet sont les bienvenues ! N'hésitez pas à soumettre des pull requests sur GitHub.
-                                </div>
-                            </section>
-                            
-                            <section id="faq" class="mt-5">
-                                <h2 class="border-bottom pb-2">FAQ</h2>
-                                
-                                <div class="accordion mt-3" id="faqAccordion">
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                                                Les résultats sont-ils fiables ?
-                                            </button>
-                                        </h2>
-                                        <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                                            <div class="accordion-body">
-                                                Dans la version actuelle, les résultats sont basés sur des données simulées pour démonstration. 
-                                                Pour une utilisation en production, il faudrait intégrer des sources de données réelles et 
-                                                calibrer les modèles d'analyse.
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                                                Comment puis-je utiliser ma propre clé API DeepSeek R1 ?
-                                            </button>
-                                        </h2>
-                                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                            <div class="accordion-body">
-                                                Vous pouvez définir votre clé API DeepSeek R1 en modifiant le fichier <code>src/utils/deepseek_client.py</code> 
-                                                ou en définissant la variable d'environnement <code>DEEPSEEK_API_KEY</code>. Ensuite, modifiez 
-                                                le paramètre <code>use_mock</code> à <code>False</code> dans les services pour utiliser l'API réelle.
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                                                Puis-je déployer cette application en production ?
-                                            </button>
-                                        </h2>
-                                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                            <div class="accordion-body">
-                                                Oui, l'application peut être déployée en production, mais il est recommandé de :
-                                                <ul>
-                                                    <li>Utiliser un serveur WSGI comme Gunicorn ou uWSGI</li>
-                                                    <li>Configurer un serveur web comme Nginx en frontal</li>
-                                                    <li>Sécuriser les clés API et autres informations sensibles</li>
-                                                    <li>Mettre en place un système de cache pour les requêtes géospatiales</li>
-                                                    <li>Intégrer des sources de données réelles</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
-                                                Comment puis-je contribuer au projet ?
-                                            </button>
-                                        </h2>
-                                        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                            <div class="accordion-body">
-                                                Les contributions sont les bienvenues ! Voici comment procéder :
-                                                <ol>
-                                                    <li>Forkez le dépôt sur GitHub</li>
-                                                    <li>Créez une branche pour votre fonctionnalité (<code>git checkout -b feature/ma-fonctionnalite</code>)</li>
-                                                    <li>Committez vos changements (<code>git commit -am 'Ajout de ma fonctionnalité'</code>)</li>
-                                                    <li>Poussez vers la branche (<code>git push origin feature/ma-fonctionnalite</code>)</li>
-                                                    <li>Créez une Pull Request sur GitHub</li>
-                                                </ol>
-                                            </div>
-                                        </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                        Puis-je utiliser le projet sans connexion Internet ?
+                                    </button>
+                                </h2>
+                                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Oui, le projet peut fonctionner en mode hors ligne en utilisant des données simulées. Pour cela, assurez-vous que le paramètre <code>use_mock</code> est défini sur <code>True</code> dans les services.
                                     </div>
                                 </div>
-                            </section>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
 
-    <footer class="py-4 bg-dark text-white mt-4">
-        <div class="container text-center">
-            <p>GeoMarketing AI Agents &copy; 2025 | Projet Open Source</p>
-            <div>
-                <a href="https://github.com/username/geomarketing-ai-agents" class="text-white me-3" target="_blank">
-                    <i class="fab fa-github"></i>
-                </a>
-                <a href="/docs" class="text-white me-3">
-                    <i class="fas fa-book"></i>
-                </a>
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>GeoMarketing AI Agents</h5>
+                    <p>Une plateforme open source pour l'optimisation des décisions géographiques grâce à l'intelligence artificielle.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Liens</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="/" class="text-white">Accueil</a></li>
+                        <li><a href="/commercial" class="text-white">Emplacement Commercial</a></li>
+                        <li><a href="/soil" class="text-white">Qualité des Sols</a></li>
+                        <li><a href="/docs" class="text-white">Documentation</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Ressources</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="https://github.com/username/geomarketing-ai-agents" class="text-white" target="_blank">GitHub</a></li>
+                        <li><a href="https://github.com/deepseek-ai/DeepSeek-R1" class="text-white" target="_blank">DeepSeek R1</a></li>
+                        <li><a href="https://www.openstreetmap.org/" class="text-white" target="_blank">OpenStreetMap</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p class="mb-0">© 2025 GeoMarketing AI Agents. Tous droits réservés.</p>
             </div>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialiser la coloration syntaxique
-            hljs.highlightAll();
-            
-            // Gestion du scroll pour la navigation
-            const links = document.querySelectorAll('.list-group-item');
-            links.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const targetId = link.getAttribute('href');
-                    const targetElement = document.querySelector(targetId);
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 20,
-                        behavior: 'smooth'
-                    });
-                    
-                    // Mettre à jour la classe active
-                    links.forEach(l => l.classList.remove('active'));
-                    link.classList.add('active');
-                });
-            });
-            
-            // Détecter la section visible
-            window.addEventListener('scroll', () => {
-                const sections = document.querySelectorAll('section[id]');
-                let current = '';
-                
-                sections.forEach(section => {
-                    const sectionTop = section.offsetTop;
-                    const sectionHeight = section.clientHeight;
-                    if (pageYOffset >= sectionTop - 100) {
-                        current = section.getAttribute('id');
-                    }
-                });
-                
-                links.forEach(link => {
-                    link.classList.remove('active');
-                    if (link.getAttribute('href') === `#${current}`) {
-                        link.classList.add('active');
-                    }
-                });
-            });
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html>

@@ -1,94 +1,115 @@
 """
-Routes pour l'API d'analyse d'emplacement commercial.
+Routes pour l'API d'analyse d'emplacements commerciaux.
 """
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for
+import json
 from src.services.commercial_location_service import CommercialLocationService
+from src.models.commercial_location import CommercialLocation
 
-# Création du blueprint
-commercial_bp = Blueprint('commercial', __name__, url_prefix='/api/commercial')
+# Créer un blueprint pour les routes commerciales
+commercial_bp = Blueprint('commercial', __name__)
 
-# Initialisation du service
-location_service = CommercialLocationService(use_mock=True)
+# Initialiser le service
+commercial_service = CommercialLocationService(use_mock=True)
+
+@commercial_bp.route('/')
+def index():
+    """
+    Page principale d'analyse d'emplacement commercial.
+    """
+    return render_template('commercial.html')
 
 @commercial_bp.route('/analyze', methods=['POST'])
-def analyze_location():
+def analyze():
     """
     Endpoint pour analyser un emplacement commercial.
-    
-    Exemple de requête:
-    {
-        "location": "Paris, France",
-        "business_type": "pharmacie",
-        "parameters": {
-            "radius": 500,
-            "importance_factors": {
-                "population": 0.4,
-                "competition": 0.3,
-                "accessibility": 0.3
-            }
-        }
-    }
     """
-    data = request.json
-    
-    if not data or 'location' not in data:
-        return jsonify({"error": "La localisation est requise"}), 400
-    
-    location = data.get('location')
-    business_type = data.get('business_type', 'pharmacie')
-    parameters = data.get('parameters', {})
-    
-    # Appel au service d'analyse
-    results = location_service.analyze_location(location, business_type, parameters)
-    
-    # Transformation des chemins de fichiers en URLs relatives
-    if 'visualizations' in results:
-        for key, path in results['visualizations'].items():
-            if path.startswith('src/static/'):
-                results['visualizations'][key] = '/' + path.replace('src/static/', 'static/')
-    
-    return jsonify(results)
-
-@commercial_bp.route('/examples', methods=['GET'])
-def get_examples():
-    """Renvoie des exemples de paramètres pour l'analyse d'emplacement commercial."""
-    examples = [
-        {
-            "location": "Paris, France",
-            "business_type": "pharmacie",
-            "parameters": {
-                "radius": 500,
-                "importance_factors": {
-                    "population": 0.4,
-                    "competition": 0.3,
-                    "accessibility": 0.3
-                }
-            }
-        },
-        {
-            "location": "Lyon, France",
-            "business_type": "pharmacie",
-            "parameters": {
-                "radius": 800,
-                "importance_factors": {
-                    "population": 0.3,
-                    "competition": 0.4,
-                    "accessibility": 0.3
-                }
-            }
-        },
-        {
-            "location": "Toulouse, France",
-            "business_type": "pharmacie",
-            "parameters": {
-                "radius": 600,
-                "importance_factors": {
-                    "population": 0.35,
-                    "competition": 0.35,
-                    "accessibility": 0.3
-                }
-            }
+    try:
+        # Récupérer les données du formulaire
+        data = request.form if request.form else request.get_json()
+        
+        # Créer un objet CommercialLocation
+        location = CommercialLocation(
+            location_name=data.get('location', ''),
+            business_type=data.get('business_type', ''),
+            radius=int(data.get('radius', 500))
+        )
+        
+        # Récupérer les facteurs d'importance
+        importance_factors = {
+            'population': float(data.get('population_factor', 0.4)),
+            'competition': float(data.get('competition_factor', 0.3)),
+            'accessibility': float(data.get('accessibility_factor', 0.2)),
+            'visibility': float(data.get('visibility_factor', 0.1))
         }
-    ]
+        location.importance_factors = importance_factors
+        
+        # Analyser l'emplacement
+        result = commercial_service.analyze_location(location)
+        
+        # Si la requête vient de l'API, renvoyer un JSON
+        if request.is_json:
+            return jsonify(result.to_dict())
+        
+        # Sinon, rediriger vers la page de résultats
+        return render_template('commercial.html', 
+                              location=location.to_dict(), 
+                              result=result.to_dict(),
+                              active_tab='results')
+        
+    except Exception as e:
+        error_message = f"Erreur lors de l'analyse: {str(e)}"
+        if request.is_json:
+            return jsonify({'error': error_message}), 500
+        return render_template('commercial.html', error=error_message)
+
+@commercial_bp.route('/api/analyze', methods=['POST'])
+def api_analyze():
+    """
+    Endpoint API pour analyser un emplacement commercial.
+    """
+    try:
+        # Récupérer les données JSON
+        data = request.get_json()
+        
+        # Créer un objet CommercialLocation
+        location = CommercialLocation(
+            location_name=data.get('location', ''),
+            business_type=data.get('business_type', ''),
+            radius=data.get('parameters', {}).get('radius', 500)
+        )
+        
+        # Récupérer les facteurs d'importance
+        importance_factors = data.get('parameters', {}).get('importance_factors', {})
+        if importance_factors:
+            location.importance_factors = importance_factors
+        
+        # Analyser l'emplacement
+        result = commercial_service.analyze_location(location)
+        
+        # Renvoyer les résultats
+        return jsonify(result.to_dict())
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@commercial_bp.route('/example')
+def load_example():
+    """
+    Charge un exemple d'analyse.
+    """
+    # Créer un exemple d'emplacement
+    location = CommercialLocation(
+        location_name="Paris, France",
+        business_type="Pharmacie",
+        radius=500
+    )
     
-    return jsonify(examples)
+    # Analyser l'emplacement
+    result = commercial_service.analyze_location(location)
+    
+    # Renvoyer la page avec les résultats
+    return render_template('commercial.html', 
+                          location=location.to_dict(), 
+                          result=result.to_dict(),
+                          active_tab='results')
